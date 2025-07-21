@@ -2,6 +2,9 @@ import asyncio
 
 from nio import AsyncClient, LoginResponse, MatrixRoom, RoomMessageText
 
+import Logging
+from Logging import Severity
+
 config = {}
 client = None
 logged_in = False
@@ -10,10 +13,7 @@ message_queue = []
 async def message_callback(room: MatrixRoom, event: RoomMessageText) -> None:
     if event.sender == config['matrix_user']:
         return
-    print(
-        f"Message received in room {room.display_name}\n"
-        f"{room.user_name(event.sender)} | {event.body}"
-    )
+    Logging.log(f'{room.display_name} {room.user_name(event.sender)} | {event.body}', severity=Severity.DEBUG)
     if room.room_id == config['matrix_dm_room_id']:
         message_queue.append(event.body)
 
@@ -23,7 +23,7 @@ async def login():
     login = await client.login(config['matrix_password'])
 
     if not isinstance(login, LoginResponse):
-        print("Login failed:", login)
+        Logging.log("Login failed", severity=Logging.Severity.ERROR)
         return
 
     await client.sync()

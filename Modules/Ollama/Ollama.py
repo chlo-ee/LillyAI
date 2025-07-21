@@ -2,6 +2,8 @@ import json
 
 import requests
 
+import Logging
+from Logging import Severity
 from Modules.Ollama import ContextManager
 
 
@@ -44,8 +46,7 @@ class Ollama:
             if len(tool_descriptions) > 0:
                 payload['tools'] = tool_descriptions
             response = requests.post(f'{self.endpoint}/chat', json=payload)
-            print(json.dumps(payload))
-            print(response.json())
+            Logging.log(response.json(), severity=Severity.DEBUG)
             reply = response.json()['message']
             reply['content'] = reply['content'].lstrip().rstrip()
             messages.append(reply)
