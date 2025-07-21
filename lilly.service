@@ -1,0 +1,15 @@
+[Unit]
+Description=LillyAI Core Service
+StartLimitIntervalSec=0
+After=dbus.service
+
+[Service]
+WorkingDirectory=/opt/LillyAI
+Type=simple
+Restart=always
+RestartSec=1
+User=lilly
+ExecStart=/bin/bash /opt/LillyAI/launch.sh
+
+[Install]
+WantedBy=multi-user.target

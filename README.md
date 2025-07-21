@@ -56,6 +56,40 @@ source .venv/bin/actiavte
 python -m pip install -r requirements.txt
 ```
 
+If you are using a Linux system you can also run the launch.sh script.
+This will create and activate the venv automatically and also install all requirements:
+
+```commandline
+git clone https://github.com/chlo-ee/LillyAI
+cd LillyAI
+./launch.sh
+```
+
+Be aware that this will fail if you don't have a configuration yet!
+
+### Optional: Systemd Service
+
+You can also use the systemd service file provided here to automatically start Lilly on boot.
+It is strongly recommended that you create a system user for this - the default is "lilly".
+
+Example installation for Arch Linux:
+
+```commandline
+sudo useradd -s /bin/nologin -d /opt/LillyAI --no-create-home --system lilly
+git clone https://github.com/chlo-ee/LillyAI
+sudo mv LillyAI /opt
+sudo chown -R lilly /opt/LillyAI
+sudo cp /opt/LillyAI/lilly.service /etc/systemd/system/lilly.service
+sudo systemctl daemon-reload
+sudo systemctl enable lilly
+```
+
+You can then start Lilly manually using:
+
+```commandline
+sudo systemctl start lilly
+```
+
 ## Configuration
 
 Configuration is done via the config.json. You can use the example.config.json as a baseline for this:
