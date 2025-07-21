@@ -15,7 +15,7 @@ No problem, just make sure the AI model has access to the "MQTTLights" module.
 
 Lilly is ultra context-aware.
 For example when she summarized an incoming Email you can absolutely ask her about some specifics in that Email.
-Lilly remembers everything in a sqlite-Database. Just... make sure nobody steals this one ;)
+Lilly remembers everything in an sqlite-Database. Just... make sure nobody steals this one ;)
 
 ## Prerequisites
 
@@ -89,7 +89,7 @@ This might be an Email client reading incoming mail or a Matrix client waiting f
 
 Processor Modules are mostly LLMs.
 They take the input from the input module and sometimes mix it with a prompt provided by the route.
-They then process it - for example by interrogating an LLM and output the result.
+They then process it - for example by interrogating an LLM - and output the result.
 Furthermore, they can also alter the prompt which means that multiple LLMs could be chained together.
 
 ### Tool Modules
@@ -149,7 +149,7 @@ Also note that in this case "Matrix" is the input as well as the output module a
 
 Obviously this lets you give LLMs control over whatever you want.
 An incoming Email could for example contain malicious information that an LLM might "fall" for.
-The is why it's generally recommended to never use tools with an Input Module that processes potentially harmful contents.
+This is why it's generally recommended to never use tools with an Input Module that processes potentially harmful contents.
 
 ## Missing stuff
 
