@@ -1,0 +1,5 @@
+IMAPClient~=3.0.1
+beautifulsoup4~=4.13.4
+requests~=2.32.4
+matrix-nio~=0.25.2
+paho-mqtt~=2.1.0

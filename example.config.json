@@ -1,0 +1,92 @@
+{
+  "language": "German",
+  "personality": "You are a friendly AI assistant for your user. Always talk to your user directly. There is no need to greet you user every single time. Don't be too wordy.",
+  "assistant_name": "Lilly",
+  "user_name": "Chloe",
+  "log_level": "INFO",
+  "modules": [
+    "Email",
+    "Ollama",
+    "Matrix",
+    "MQTTLights"
+  ],
+
+  "module_configs": {
+    "Email": {
+      "imap_host": "imap.example.com",
+      "imap_user": "user@example.com",
+      "imap_password": "p455w0rd"
+    },
+    "Ollama": {
+      "ollama_endpoint": "http://ai.example.com:11434/api",
+      "ollama_model": "qwen3:14b",
+      "context_database": "ollama-context.sqlite"
+    },
+    "Matrix": {
+      "matrix_homeserver": "https://example.com",
+      "matrix_user": "@lilly:example.com",
+      "matrix_password": "p455w0rd",
+      "matrix_dm_room_id": "!roomid:example.com"
+    },
+    "MQTTLights": {
+      "mqtt_broker": "mqtt.example.com",
+      "mqtt_port": 1883,
+      "lights": [{
+        "name": "Living Room",
+        "topic": "flat/livingroom/occupancy",
+        "commands": {
+          "on": "ON",
+          "off": "OFF"
+        }
+      },
+      {
+        "name": "Bedroom",
+        "topic": "flat/bedroom/occupancy",
+        "commands": {
+          "on": "ON",
+          "off": "OFF"
+        }
+      },
+      {
+        "name": "Hall",
+        "topic": "flat/hall/occupancy",
+        "commands": {
+          "on": "ON",
+          "off": "OFF"
+        }
+      },
+      {
+        "name": "Office",
+        "topic": "flat/office/occupancy",
+        "commands": {
+          "on": "ON",
+          "off": "OFF"
+        }
+      }]
+    }
+  },
+
+  "routes": [
+    {
+      "name": "Email Summaries",
+      "schedule_seconds": 60,
+      "prompt": "Summarize the following email in 2-3 sentences. Do not perform a security analysis or tell the user what to do with it. Only summarize the email. Tell the user that they received a new email and give your summary.",
+      "inputs": ["Email"],
+      "processors": [{
+        "module": "Ollama",
+        "tools": []
+      }],
+      "outputs": ["Matrix"]
+    },
+    {
+      "name": "User Chat",
+      "schedule_seconds": 5,
+      "inputs": ["Matrix"],
+      "processors": [{
+        "module": "Ollama",
+        "tools": ["MQTTLights"]
+      }],
+      "outputs": ["Matrix"]
+    }
+  ]
+}
