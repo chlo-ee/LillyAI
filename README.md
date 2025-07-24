@@ -190,12 +190,6 @@ This is why it's generally recommended to never use tools with an Input Module t
 The modular nature of LillyAI make her pretty easily extensible.
 There are however a few things that are still missing from the core.
 
-### Route verification
-
-Right now routes are simply loaded on start.
-If you set an Output-only Module as Input Module, it will only crash once Lilly tries to access the input.
-Routes can easily be verified and I will add this soon.
-
 ### Better logging
 
 Logging is pretty sparse right now. Config errors also just result in crashes. We can and should fix this

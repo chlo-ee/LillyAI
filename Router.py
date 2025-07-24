@@ -14,6 +14,11 @@ class Router:
 
     def verify(self):
         is_valid = True
+
+        if len(self.inputs) == 0:
+            Logging.log(f'Route {self.name} is missing input modules and can therefore never work.', severity=Severity.FATAL)
+            is_valid = False
+
         for input_module in self.inputs:
             if not hasattr(input_module, 'get_data'):
                 Logging.log(f'Route {self.name}: Module {input_module.MODULE_NAME} can not be used as input module.', severity=Severity.FATAL)
@@ -28,8 +33,7 @@ class Router:
             for tool in processor_tools:
                 if not hasattr(tool, 'get_tooling') or not hasattr(tool, 'run_tool') or not hasattr(tool, 'tool_function'):
                     Logging.log(
-                        f'Route {self.name} -> {processor_module.MODULE_NAME}: Module {tool.MODULE_NAME} can not be used as tool module.',
-                        severity=Severity.FATAL)
+                        f'Route {self.name} -> {processor_module.MODULE_NAME}: Module {tool.MODULE_NAME} can not be used as tool module.', severity=Severity.FATAL)
                     is_valid = False
 
         for output_module in self.outputs:
