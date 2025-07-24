@@ -31,9 +31,10 @@ class Router:
                 Logging.log(f'Route {self.name}: Module {processor_module.MODULE_NAME} can not be used as processor module.', severity=Severity.FATAL)
                 is_valid = False
             for tool in processor_tools:
-                if not hasattr(tool, 'get_tooling') or not hasattr(tool, 'run_tool') or not hasattr(tool, 'tool_function'):
+                tool_module = tool['module']
+                if not hasattr(tool_module, 'get_tooling') or not hasattr(tool_module, 'run_tool') or not hasattr(tool_module, 'tool_function'):
                     Logging.log(
-                        f'Route {self.name} -> {processor_module.MODULE_NAME}: Module {tool.MODULE_NAME} can not be used as tool module.', severity=Severity.FATAL)
+                        f'Route {self.name} -> {processor_module.MODULE_NAME}: Module {tool_module.MODULE_NAME} can not be used as tool module.', severity=Severity.FATAL)
                     is_valid = False
 
         for output_module in self.outputs:

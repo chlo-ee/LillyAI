@@ -58,8 +58,13 @@ def init_routes(routes):
         for processor_description in processors:
             tools = []
             if 'tools' in processor_description:
-                for tool_name in processor_description['tools']:
-                    tools.append(modules[tool_name])
+                for tool_description in processor_description['tools']:
+                    tool = {
+                        'module': modules[tool_description['module']]
+                    }
+                    if 'context_decay' in tool_description:
+                        tool['context_decay'] = tool_description['context_decay']
+                    tools.append(tool)
 
             processor_modules.append(
                 {

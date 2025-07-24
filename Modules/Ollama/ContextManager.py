@@ -6,7 +6,7 @@ from sqlite3 import Connection
 
 import PromptTools
 
-CONTEXT_DB_VERSION = 1
+CONTEXT_DB_VERSION = 2
 
 def update_db(connection: Connection, version):
     cursor = connection.cursor()
@@ -39,7 +39,7 @@ def get_db_connection(context_db):
 
 def get_message_list(connection: Connection):
     cursor = connection.cursor()
-    result = cursor.execute('SELECT role, content, tool_calls FROM messages')
+    result = cursor.execute('SELECT role, content, tool_calls, tool_context FROM messages')
     db_messages = result.fetchall()
     cursor.close()
 
@@ -56,6 +56,9 @@ def get_message_list(connection: Connection):
         }
         if len(db_message[2]) > 0:
             message['tool_calls'] = json.loads(db_message[2])
+        if len(db_message[3]) > 0:
+            message['tool_context'] = json.loads(db_message[3])
+
         messages.append(message)
     return messages
 
@@ -64,7 +67,27 @@ def save_message_to_db(connection: Connection, message):
     tool_calls = ''
     if 'tool_calls' in message:
         tool_calls = json.dumps(message['tool_calls'])
+
+    tool_context = ''
+    if 'tool_context' in message:
+        tool_context = json.dumps(message['tool_context'])
+
     cursor = connection.cursor()
-    cursor.execute('INSERT INTO messages (timestamp, role, content, tool_calls) VALUES (?,?,?,?)',
-                   [int(time.time()), message['role'], message['content'], tool_calls])
+    cursor.execute('INSERT INTO messages (timestamp, role, content, tool_calls, tool_context) VALUES (?,?,?,?,?)',
+                   [int(time.time()), message['role'], message['content'], tool_calls, tool_context])
+    rowid = cursor.lastrowid
+    cursor.close()
+    return rowid
+
+def alter_db_message(connection: Connection, message, rowid):
+    tool_calls = ''
+    if 'tool_calls' in message:
+        tool_calls = json.dumps(message['tool_calls'])
+
+    tool_context = ''
+    if 'tool_context' in message:
+        tool_context = json.dumps(message['tool_context'])
+
+    cursor = connection.cursor()
+    cursor.execute('UPDATE messages SET role = ?, content = ?, tool_calls = ?, tool_context = ? WHERE rowid=?;', [message['role'], message['content'], tool_calls, tool_context, rowid])
     cursor.close()

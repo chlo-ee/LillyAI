@@ -87,6 +87,7 @@ Here each route that information can take is listed.
       }],
       "outputs": ["Matrix"]
     }
+]
 ```
 
 This is the example Email route that reads incoming mail, summarizes it and messages the summary to the user using Matrix.
@@ -118,3 +119,20 @@ You can use multiple processors. In that case each processor can alter the input
 #### outputs
 
 The list of Output Modules. You can use multiple outputs.
+
+### Tools
+
+Each tool consists of two values:
+
+```json
+"tools": [
+      {
+          "module": "MQTTLights",
+          "context_decay": 6
+      }
+]
+```
+
+One is the name of the module. The other is the context_decay.
+This is optional, however if set this determines for how many messages everything that happened within the context of that tool stays in Lilly's context.
+This may seem unnecessary, however in some cases many calls to a tool in the context result in the model not calling the tool anymore.

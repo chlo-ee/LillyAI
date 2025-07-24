@@ -84,7 +84,10 @@
       "inputs": ["Matrix"],
       "processors": [{
         "module": "Ollama",
-        "tools": ["MQTTLights"]
+        "tools": [{
+          "module": "MQTTLights",
+          "context_decay": 6
+        }]
       }],
       "outputs": ["Matrix"]
     }
