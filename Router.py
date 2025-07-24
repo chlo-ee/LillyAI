@@ -1,6 +1,7 @@
 import asyncio
 
 import Logging
+from Logging import Severity
 
 
 class Router:
@@ -11,6 +12,33 @@ class Router:
         self.prompt = prompt
         self.name = name
 
+    def verify(self):
+        is_valid = True
+        for input_module in self.inputs:
+            if not hasattr(input_module, 'get_data'):
+                Logging.log(f'Route {self.name}: Module {input_module.MODULE_NAME} can not be used as input module.', severity=Severity.FATAL)
+                is_valid = False
+
+        for processor in self.processors:
+            processor_module = processor['module']
+            processor_tools = processor['tools']
+            if not hasattr(processor_module, 'process_data'):
+                Logging.log(f'Route {self.name}: Module {processor_module.MODULE_NAME} can not be used as processor module.', severity=Severity.FATAL)
+                is_valid = False
+            for tool in processor_tools:
+                if not hasattr(tool, 'get_tooling') or not hasattr(tool, 'run_tool') or not hasattr(tool, 'tool_function'):
+                    Logging.log(
+                        f'Route {self.name} -> {processor_module.MODULE_NAME}: Module {tool.MODULE_NAME} can not be used as tool module.',
+                        severity=Severity.FATAL)
+                    is_valid = False
+
+        for output_module in self.outputs:
+            if not hasattr(output_module, 'output'):
+                Logging.log(f'Route {self.name}: Module {output_module.MODULE_NAME} can not be used as output module.', severity=Severity.FATAL)
+                is_valid = False
+        return is_valid
+
+
     async def get_input(self):
         for input_module in self.inputs:
             input_data = await input_module.get_data()
@@ -20,8 +48,8 @@ class Router:
 
     def process_data(self, data):
         for processor in self.processors:
-            processor_module = processor["module"]
-            tools = processor["tools"]
+            processor_module = processor['module']
+            tools = processor['tools']
             data, prompt = processor_module.process_data(data, self.prompt, tools)
         return data
 

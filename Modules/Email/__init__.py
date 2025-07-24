@@ -3,6 +3,8 @@ import email
 import imapclient
 from bs4 import BeautifulSoup
 
+MODULE_NAME = 'Email'
+
 config = {}
 
 async def get_data():

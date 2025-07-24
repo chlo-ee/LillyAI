@@ -1,5 +1,7 @@
 import asyncio
 import importlib
+import sys
+from enum import Enum
 
 import Logging
 import json
@@ -8,6 +10,10 @@ import PromptTools
 from Logging import Severity
 from Router import Router
 from Scheduler import Scheduler
+
+
+class ExitCodes(Enum):
+    INVALID_ROUTES = 2
 
 LOGGING_NAME = "Lilly"
 modules = {}
@@ -64,7 +70,9 @@ def init_routes(routes):
         for output_name in outputs:
             output_modules.append(modules[output_name])
 
-        router = Router(inputs=input_modules, processors=processor_modules, outputs=output_modules, prompt=prompt, name=name, )
+        router = Router(inputs=input_modules, processors=processor_modules, outputs=output_modules, prompt=prompt, name=name)
+        if not router.verify():
+            sys.exit(ExitCodes.INVALID_ROUTES.value)
         routers.append(router)
 
         if 'schedule_seconds' in route:

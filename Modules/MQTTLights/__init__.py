@@ -1,5 +1,7 @@
 import paho.mqtt.client as mqtt
 
+MODULE_NAME = 'MQTTLights'
+
 config = {}
 client = None
 tool_function = 'set_light'

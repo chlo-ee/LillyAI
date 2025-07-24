@@ -21,4 +21,4 @@ def log(message, severity=Severity.INFO):
     if severity.value > severity_limit.value:
         return
     caller = get_caller()
-    print(f'[{caller}] {message}')
+    print(f'[{severity.name}][{caller}] {message}')

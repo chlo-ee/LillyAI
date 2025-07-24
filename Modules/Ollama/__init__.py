@@ -1,5 +1,7 @@
 from Modules.Ollama.Ollama import Ollama
 
+MODULE_NAME = 'Ollama'
+
 config = {}
 ollama_instance = None
 

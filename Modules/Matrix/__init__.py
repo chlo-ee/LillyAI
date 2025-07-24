@@ -5,6 +5,8 @@ from nio import AsyncClient, LoginResponse, MatrixRoom, RoomMessageText
 import Logging
 from Logging import Severity
 
+MODULE_NAME = 'Matrix'
+
 config = {}
 client = None
 logged_in = False
