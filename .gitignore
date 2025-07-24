@@ -1,5 +1,9 @@
 /.venv/
 /.idea/
 
+__pycache__/
+*.py[codz]
+*$py.class
+
 /config.json
 /ollama-context.sqlite
