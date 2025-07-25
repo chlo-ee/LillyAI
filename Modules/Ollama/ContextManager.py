@@ -4,13 +4,17 @@ import sqlite3
 import time
 from sqlite3 import Connection
 
+import Logging
 import PromptTools
+from Logging import Severity
 
 CONTEXT_DB_VERSION = 2
 
 def update_db(connection: Connection, version):
+    Logging.log('Database migration running. Stay calm - everything is under control. Hopefully.')
     cursor = connection.cursor()
     while version < CONTEXT_DB_VERSION:
+        Logging.log(f'Migrating from version {version}...', severity=Severity.DEBUG)
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'DBMigrations', f'{version}.sql'),
                   'r') as migration_file:
             cursor.executescript(migration_file.read())
