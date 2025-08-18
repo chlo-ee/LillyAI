@@ -1,5 +1,3 @@
-import asyncio
-
 import Logging
 from Logging import Severity
 
@@ -27,6 +25,7 @@ class Router:
         for processor in self.processors:
             processor_module = processor['module']
             processor_tools = processor['tools']
+            processor_prompt_additions = processor['system_prompt_additions']
             if not hasattr(processor_module, 'process_data'):
                 Logging.log(f'Route {self.name}: Module {processor_module.MODULE_NAME} can not be used as processor module.', severity=Severity.FATAL)
                 is_valid = False
@@ -35,6 +34,11 @@ class Router:
                 if not hasattr(tool_module, 'get_tooling') or not hasattr(tool_module, 'run_tool') or not hasattr(tool_module, 'tool_function'):
                     Logging.log(
                         f'Route {self.name} -> {processor_module.MODULE_NAME}: Module {tool_module.MODULE_NAME} can not be used as tool module.', severity=Severity.FATAL)
+                    is_valid = False
+            for prompt_addition_module in processor_prompt_additions:
+                if not hasattr(prompt_addition_module, 'get_system_prompt_content'):
+                    Logging.log(
+                        f'Route {self.name} -> {processor_module.MODULE_NAME}: Module {tool_module.MODULE_NAME} can not be used as system prompt addition.', severity=Severity.FATAL)
                     is_valid = False
 
         for output_module in self.outputs:
@@ -55,7 +59,8 @@ class Router:
         for processor in self.processors:
             processor_module = processor['module']
             tools = processor['tools']
-            data, prompt = processor_module.process_data(data, self.prompt, tools)
+            system_prompt_additions = processor['system_prompt_additions']
+            data, prompt = processor_module.process_data(data, self.prompt, tools, system_prompt_additions)
         return data
 
     async def output_data(self, data):

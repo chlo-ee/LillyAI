@@ -41,7 +41,7 @@ def get_db_connection(context_db):
     return con
 
 
-def get_message_list(connection: Connection):
+def get_message_list(connection: Connection, system_prompt_additions=None):
     cursor = connection.cursor()
     result = cursor.execute('SELECT role, content, tool_calls, tool_context FROM messages')
     db_messages = result.fetchall()
@@ -50,7 +50,7 @@ def get_message_list(connection: Connection):
     messages = [
         {
             'role': 'system',
-            'content': PromptTools.build_base_prompt()
+            'content': PromptTools.build_base_prompt(system_prompt_additions)
         }
     ]
     for db_message in db_messages:

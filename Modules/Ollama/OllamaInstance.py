@@ -13,14 +13,14 @@ class OllamaInstance:
         self.model = model
         self.context_db = context_db
 
-    def chat(self, content, prompt=None, tools=None):
+    def chat(self, content, prompt=None, tools=None, system_prompt_additions=None):
         tool_descriptions = []
         if tools is not None:
             for tool in tools:
                 tool_descriptions.append(tool['module'].get_tooling())
 
         con = ContextManager.get_db_connection(self.context_db)
-        stored_messages = ContextManager.get_message_list(con)
+        stored_messages = ContextManager.get_message_list(con, system_prompt_additions)
         messages = []
         msg_idx = 0
 
@@ -76,8 +76,6 @@ class OllamaInstance:
                     function = call['function']
                     for tool in tools:
                         tool_module = tool['module']
-                        if not tool_module.MODULE_NAME in called_tools:
-                            called_tools.append(tool_module.MODULE_NAME)
 
                         if tool_module.tool_function == function['name']:
                             tool_result = tool_module.run_tool(function['arguments'])
@@ -86,6 +84,9 @@ class OllamaInstance:
                                 'content': tool_result
                             }
                             tool_replies.append(message)
+                            if not tool_module.MODULE_NAME in called_tools:
+                                called_tools.append(tool_module.MODULE_NAME)
+
                 reply['tool_context'] = called_tools
                 messages.append(reply)
                 ContextManager.save_message_to_db(con, reply)

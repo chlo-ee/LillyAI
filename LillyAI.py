@@ -66,10 +66,16 @@ def init_routes(routes):
                         tool['context_decay'] = tool_description['context_decay']
                     tools.append(tool)
 
+            system_prompt_additions = []
+            if 'system_prompt_additions' in processor_description:
+                for prompt_addition in processor_description['system_prompt_additions']:
+                    system_prompt_additions.append(modules[prompt_addition])
+
             processor_modules.append(
                 {
                     "module": modules[processor_description["module"]],
-                    "tools": tools
+                    "tools": tools,
+                    "system_prompt_additions": system_prompt_additions
                 })
 
         for output_name in outputs:
