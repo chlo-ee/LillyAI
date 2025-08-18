@@ -136,3 +136,20 @@ Each tool consists of two values:
 One is the name of the module. The other is the context_decay.
 This is optional, however if set this determines for how many messages everything that happened within the context of that tool stays in Lilly's context.
 This may seem unnecessary, however in some cases many calls to a tool in the context result in the model not calling the tool anymore.
+
+### System Prompt Additions
+
+Modules like CoreMemory can append data to the system prompt.
+In order to allow a module to do this, you will have to enable it in the "system_prompt_additions"-field of the processor:
+
+```json
+"processors": [{
+    "module": "Ollama",
+    "tools": [
+        {
+          "module": "CoreMemory"
+        }
+    ],
+    "system_prompt_additions": ["CoreMemory"]
+}]
+```
