@@ -8,7 +8,8 @@
     "Email",
     "Ollama",
     "Matrix",
-    "MQTTLights"
+    "MQTTLights",
+    "CoreMemory"
   ],
 
   "module_configs": {
@@ -21,6 +22,9 @@
       "ollama_endpoint": "http://ai.example.com:11434/api",
       "ollama_model": "qwen3:14b",
       "context_database": "ollama-context.sqlite"
+    },
+    "CoreMemory": {
+      "memory_database": "core-memories.sqlite"
     },
     "Matrix": {
       "matrix_homeserver": "https://example.com",
@@ -74,7 +78,8 @@
       "inputs": ["Email"],
       "processors": [{
         "module": "Ollama",
-        "tools": []
+        "tools": [],
+        "system_prompt_additions": ["CoreMemory"]
       }],
       "outputs": ["Matrix"]
     },
@@ -87,7 +92,10 @@
         "tools": [{
           "module": "MQTTLights",
           "context_decay": 6
-        }]
+        }, {
+          "module": "CoreMemory"
+        }],
+        "system_prompt_additions": ["CoreMemory"]
       }],
       "outputs": ["Matrix"]
     }
