@@ -102,6 +102,10 @@ Arbitrary name for the route - this is used for logging.
 
 How often the scheduler should check for new input
 
+#### schedule_daily
+
+Alternatively you can input a time here. The router will then run daily at that given time.
+
 #### prompt
 
 A prompt to give to the processor. Note that each processor can alter the prompt on demand.

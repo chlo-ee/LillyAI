@@ -26,7 +26,6 @@
       "short_term_memory_minutes": 960
     },
     "CalDAV": {
-      "runat": "08:00",
       "calendars": [
         {
           "topic": "Birthdays",
@@ -96,7 +95,7 @@
       "outputs": ["Matrix"]
     },{
       "name": "Calendar Summary",
-      "schedule_seconds": 60,
+      "schedule_daily": "08:00",
       "prompt": "Summarize the following calendar events for today. Tell the user that this is today's calendar summary and give your summary.",
       "inputs": ["CalDAV"],
       "processors": [{

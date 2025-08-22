@@ -17,9 +17,6 @@ def get_todays_events(url, username, password):
     return events
 
 async def get_data():
-    target = datetime.time.fromisoformat(config['runat'])
-    if datetime.datetime.now().time().hour != target.hour or datetime.datetime.now().time().minute != target.minute:
-        return ''
     summary = ''
     for calendar in config['calendars']:
         events = get_todays_events(calendar['url'], calendar['username'], calendar['password'])

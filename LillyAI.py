@@ -1,6 +1,7 @@
 import asyncio
 import importlib
 import sys
+from datetime import time
 from enum import Enum
 
 import Logging
@@ -87,7 +88,9 @@ def init_routes(routes):
         routers.append(router)
 
         if 'schedule_seconds' in route:
-            scheduler.schedule(router, route['schedule_seconds'])
+            scheduler.schedule(router, interval=route['schedule_seconds'])
+        elif 'schedule_daily' in route:
+            scheduler.schedule(router, time_of_day=time.fromisoformat(route['schedule_daily']))
 
 
 async def init():
