@@ -10,7 +10,8 @@
     "Matrix",
     "MQTTLights",
     "CoreMemory",
-    "CalDAV"
+    "CalDAV",
+    "Timing"
   ],
 
   "module_configs": {
@@ -33,6 +34,9 @@
           "username": "user",
           "password": "p455w0rd"
         }]
+    },
+    "Timing": {
+      "timing_database": "timing.sqlite"
     },
     "CoreMemory": {
       "memory_database": "core-memories.sqlite"
@@ -115,8 +119,24 @@
           "context_decay": 6
         }, {
           "module": "CoreMemory"
+        }, {
+          "module": "Timing",
+          "context_decay": 6
         }],
-        "system_prompt_additions": ["CoreMemory"]
+        "system_prompt_additions": ["Timing", "CoreMemory"]
+      }],
+      "outputs": ["Matrix"]
+    },{
+      "name": "Timed Actions",
+      "schedule_seconds": 1,
+      "inputs": ["Timing"],
+      "processors": [{
+        "module": "Ollama",
+        "tools": [{
+          "module": "MQTTLights",
+          "context_decay": 6
+        }],
+        "system_prompt_additions": ["Timing", "CoreMemory"]
       }],
       "outputs": ["Matrix"]
     }

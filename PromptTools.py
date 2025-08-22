@@ -9,7 +9,7 @@ def build_base_prompt(system_prompt_additions=None):
 
 Your name: {ai_name}
 User's name: {user_name}
-    '''
+'''
 
     if system_prompt_additions:
         for addition_module in system_prompt_additions:
