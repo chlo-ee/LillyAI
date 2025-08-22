@@ -184,12 +184,3 @@ Also note that in this case "Matrix" is the input as well as the output module a
 Obviously this lets you give LLMs control over whatever you want.
 An incoming Email could for example contain malicious information that an LLM might "fall" for.
 This is why it's generally recommended to never use tools with an Input Module that processes potentially harmful contents.
-
-## Missing stuff
-
-The modular nature of LillyAI make her pretty easily extensible.
-There are however a few things that are still missing from the core.
-
-### Better logging
-
-Logging is pretty sparse right now. Config errors also just result in crashes. We can and should fix this
