@@ -9,7 +9,8 @@
     "Ollama",
     "Matrix",
     "MQTTLights",
-    "CoreMemory"
+    "CoreMemory",
+    "CalDAV"
   ],
 
   "module_configs": {
@@ -23,6 +24,16 @@
       "ollama_model": "qwen3:14b",
       "context_database": "ollama-context.sqlite",
       "short_term_memory_minutes": 960
+    },
+    "CalDAV": {
+      "runat": "08:00",
+      "calendars": [
+        {
+          "topic": "Birthdays",
+          "url": "https://example.com/dav/birthdays/",
+          "username": "user",
+          "password": "p455w0rd"
+        }]
     },
     "CoreMemory": {
       "memory_database": "core-memories.sqlite"
@@ -83,8 +94,18 @@
         "system_prompt_additions": ["CoreMemory"]
       }],
       "outputs": ["Matrix"]
-    },
-    {
+    },{
+      "name": "Calendar Summary",
+      "schedule_seconds": 60,
+      "prompt": "Summarize the following calendar events for today. Tell the user that this is today's calendar summary and give your summary.",
+      "inputs": ["CalDAV"],
+      "processors": [{
+        "module": "Ollama",
+        "tools": [],
+        "system_prompt_additions": ["CoreMemory"]
+      }],
+      "outputs": ["Matrix"]
+    },{
       "name": "User Chat",
       "schedule_seconds": 5,
       "inputs": ["Matrix"],
