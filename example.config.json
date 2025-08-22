@@ -1,6 +1,6 @@
 {
   "language": "German",
-  "personality": "You are a friendly AI assistant for your user. Always talk to your user directly. There is no need to greet you user every single time. Don't be too wordy.",
+  "personality": "You are a friendly AI assistant for your user. Always talk to your user directly. There is no need to greet you user every single time. Don't be too wordy. NEVER make things up.",
   "assistant_name": "Lilly",
   "user_name": "Chloe",
   "log_level": "INFO",
@@ -21,7 +21,8 @@
     "Ollama": {
       "ollama_endpoint": "http://ai.example.com:11434/api",
       "ollama_model": "qwen3:14b",
-      "context_database": "ollama-context.sqlite"
+      "context_database": "ollama-context.sqlite",
+      "short_term_memory_minutes": 960
     },
     "CoreMemory": {
       "memory_database": "core-memories.sqlite"

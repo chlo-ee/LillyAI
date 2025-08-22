@@ -6,5 +6,6 @@ ollama_instance = None
 def process_data(text, prompt, tools, system_prompt_additions):
     global ollama_instance
     if ollama_instance is None:
-        ollama_instance = OllamaInstance(config['ollama_endpoint'], config['ollama_model'], config['context_database'])
+        ollama_instance = OllamaInstance(config['ollama_endpoint'], config['ollama_model'], config['context_database'],
+                                         config['short_term_memory_minutes'])
     return ollama_instance.chat(content=text, prompt=prompt, tools=tools, system_prompt_additions=system_prompt_additions)

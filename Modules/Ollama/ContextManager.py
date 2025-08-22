@@ -41,9 +41,11 @@ def get_db_connection(context_db):
     return con
 
 
-def get_message_list(connection: Connection, system_prompt_additions=None):
+def get_message_list(connection: Connection, system_prompt_additions=None, short_term_memory_minutes=0):
+    timestamp_limit = int(time.time()) - (short_term_memory_minutes * 60)
     cursor = connection.cursor()
-    result = cursor.execute('SELECT role, content, tool_calls, tool_context FROM messages')
+    result = cursor.execute('SELECT role, content, tool_calls, tool_context FROM messages WHERE timestamp >= ?',
+                            [timestamp_limit])
     db_messages = result.fetchall()
     cursor.close()
 

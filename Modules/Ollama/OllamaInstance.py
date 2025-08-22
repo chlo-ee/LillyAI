@@ -8,10 +8,11 @@ from Modules.Ollama import ContextManager
 
 
 class OllamaInstance:
-    def __init__(self, endpoint, model, context_db):
+    def __init__(self, endpoint, model, context_db, short_term_memory_minutes):
         self.endpoint = endpoint
         self.model = model
         self.context_db = context_db
+        self.short_term_memory_minutes = short_term_memory_minutes
 
     def chat(self, content, prompt=None, tools=None, system_prompt_additions=None):
         tool_descriptions = []
@@ -20,7 +21,7 @@ class OllamaInstance:
                 tool_descriptions.append(tool['module'].get_tooling())
 
         con = ContextManager.get_db_connection(self.context_db)
-        stored_messages = ContextManager.get_message_list(con, system_prompt_additions)
+        stored_messages = ContextManager.get_message_list(con, system_prompt_additions, self.short_term_memory_minutes)
         messages = []
         msg_idx = 0
 
