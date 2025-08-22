@@ -193,7 +193,3 @@ There are however a few things that are still missing from the core.
 ### Better logging
 
 Logging is pretty sparse right now. Config errors also just result in crashes. We can and should fix this
-
-### Shutdown routine
-
-Shutdowns are pretty much done using SIGKILL right now. This is stupid and will be fixed soon.
