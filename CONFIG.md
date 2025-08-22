@@ -104,7 +104,7 @@ How often the scheduler should check for new input
 
 #### schedule_daily
 
-Alternatively you can input a time here. The router will then run daily at that given time.
+Alternatively you can input a time here (format: "hh:mm"). The router will then run daily at that given time.
 
 #### prompt
 
