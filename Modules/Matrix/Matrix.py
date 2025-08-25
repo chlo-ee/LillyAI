@@ -1,3 +1,4 @@
+import markdown
 from nio import AsyncClient, LoginResponse, MatrixRoom, RoomMessageText
 
 import Logging
@@ -33,7 +34,10 @@ async def output(text):
     await client.room_send(
         room_id=config['matrix_dm_room_id'],
         message_type="m.room.message",
-        content={"msgtype": "m.text", "body": f"{text}"}
+        content={"msgtype": "m.text",
+                 "body": text,
+                 "format": "org.matrix.custom.html",
+                 "formatted_body": markdown.markdown(text)}
     )
 
 async def get_data():
