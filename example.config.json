@@ -93,7 +93,9 @@
       "inputs": ["Email"],
       "processors": [{
         "module": "Ollama",
-        "tools": [],
+        "tools": [{
+          "module": "CalDAV"
+        }],
         "system_prompt_additions": ["CoreMemory"]
       }],
       "outputs": ["Matrix"]
@@ -122,6 +124,8 @@
         }, {
           "module": "Timing",
           "context_decay": 6
+        },{
+          "module": "CalDAV"
         }],
         "system_prompt_additions": ["Timing", "CoreMemory"]
       }],
@@ -135,6 +139,8 @@
         "tools": [{
           "module": "MQTTLights",
           "context_decay": 6
+        },{
+          "module": "CalDAV"
         }],
         "system_prompt_additions": ["Timing", "CoreMemory"]
       }],
