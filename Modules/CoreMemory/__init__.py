@@ -1,4 +1,4 @@
-from Modules.CoreMemory.CoreMemory import config, get_tooling, tool_function, run_tool, get_system_prompt_content
+from Modules.CoreMemory.CoreMemory import config, get_tooling, tool_functions, run_tool, get_system_prompt_content
 
 MODULE_NAME = 'CoreMemory'
 

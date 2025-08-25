@@ -1,4 +1,4 @@
-from Modules.MQTTLights.MQTTLights import config, tool_function, get_tooling, run_tool
+from Modules.MQTTLights.MQTTLights import config, tool_functions, get_tooling, run_tool
 
 MODULE_NAME = 'MQTTLights'
 

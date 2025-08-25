@@ -125,7 +125,8 @@
           "module": "Timing",
           "context_decay": 6
         },{
-          "module": "CalDAV"
+          "module": "CalDAV",
+          "context_decay": 12
         }],
         "system_prompt_additions": ["Timing", "CoreMemory"]
       }],

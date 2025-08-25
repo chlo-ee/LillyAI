@@ -18,7 +18,7 @@ class OllamaInstance:
         tool_descriptions = []
         if tools is not None:
             for tool in tools:
-                tool_descriptions.append(tool['module'].get_tooling())
+                tool_descriptions.extend(tool['module'].get_tooling())
 
         con = ContextManager.get_db_connection(self.context_db)
         stored_messages = ContextManager.get_message_list(con, system_prompt_additions, self.short_term_memory_minutes)
@@ -78,8 +78,8 @@ class OllamaInstance:
                     for tool in tools:
                         tool_module = tool['module']
 
-                        if tool_module.tool_function == function['name']:
-                            tool_result = tool_module.run_tool(function['arguments'])
+                        if function['name'] in tool_module.tool_functions:
+                            tool_result = tool_module.run_tool(function['name'], function['arguments'])
                             message = {
                                 'role': 'tool',
                                 'content': tool_result

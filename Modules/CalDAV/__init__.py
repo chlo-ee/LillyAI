@@ -1,4 +1,4 @@
-from Modules.CalDAV.CalDAV import get_data, config, run_tool, get_tooling, tool_function
+from Modules.CalDAV.CalDAV import get_data, config, run_tool, get_tooling, tool_functions
 
 MODULE_NAME = 'CalDAV'
 

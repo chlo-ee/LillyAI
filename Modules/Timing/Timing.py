@@ -8,7 +8,7 @@ import Logging
 
 config = {}
 client = None
-tool_function = 'schedule_event'
+tool_functions = ['schedule_event']
 
 MEMORY_DB_VERSION = 1
 
@@ -71,10 +71,10 @@ def get_events_from_db(connection: Connection):
 
 
 def get_tooling():
-    tool = {
+    tools = [{
         "type": "function",
         "function": {
-            "name": tool_function,
+            "name": "schedule_event",
             "description": "Schedule an event. YOU (the assistant) will be reminded of the action at the provided datetime.",
             "parameters": {
                 "type": "object",
@@ -91,17 +91,19 @@ def get_tooling():
                 "required": ["datetime", "action"]
             }
         }
-    }
+    }]
 
-    return tool
+    return tools
 
 
-def run_tool(parameters):
-    time = datetime.datetime.fromisoformat(parameters['datetime'])
-    action = parameters['action']
-    connection = get_db_connection(config['timing_database'])
-    save_event_to_db(connection, time, action)
-    return "Action has been scheduled."
+def run_tool(function_name, parameters):
+    if function_name == 'schedule_event':
+        time = datetime.datetime.fromisoformat(parameters['datetime'])
+        action = parameters['action']
+        connection = get_db_connection(config['timing_database'])
+        save_event_to_db(connection, time, action)
+        return 'Action has been scheduled.'
+    return 'Tool not found.'
 
 
 def get_system_prompt_content():

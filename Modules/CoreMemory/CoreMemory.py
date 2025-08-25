@@ -7,7 +7,7 @@ import Logging
 
 config = {}
 client = None
-tool_function = 'store_memory'
+tool_functions = ['store_memory']
 
 MEMORY_DB_VERSION = 1
 
@@ -60,10 +60,10 @@ def get_memories_from_db(connection: Connection):
 
 
 def get_tooling():
-    tool = {
+    tools = [{
         "type": "function",
         "function": {
-            "name": tool_function,
+            "name": "store_memory",
             "description": "Store a core memory that you as AI assistant can always access",
             "parameters": {
                 "type": "object",
@@ -76,18 +76,19 @@ def get_tooling():
                 "required": ["memory"]
             }
         }
-    }
+    }]
 
-    return tool
+    return tools
 
 
-def run_tool(parameters):
-    memory = parameters["memory"]
-    connection = get_db_connection(config['memory_database'])
-    save_memory_to_db(connection, memory)
+def run_tool(function_name, parameters):
+    if function_name == 'store_memory':
+        memory = parameters['memory']
+        connection = get_db_connection(config['memory_database'])
+        save_memory_to_db(connection, memory)
 
-    return "Memory has been stored."
-
+        return 'Memory has been stored.'
+    return 'Tool not found.'
 
 def get_system_prompt_content():
     connection = get_db_connection(config['memory_database'])

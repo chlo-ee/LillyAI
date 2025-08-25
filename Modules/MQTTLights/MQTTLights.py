@@ -2,7 +2,7 @@ import paho.mqtt.client as mqtt
 
 config = {}
 client = None
-tool_function = 'set_light'
+tool_functions = ['set_light']
 
 def get_client():
     global client
@@ -19,10 +19,10 @@ def get_tooling():
     light_names = []
     for light in config["lights"]:
         light_names.append(light["name"])
-    tool = {
+    tools = [{
         "type": "function",
         "function": {
-            "name": tool_function,
+            "name": "set_light",
             "description": "Turn the light on or off",
             "parameters": {
                 "type": "object",
@@ -41,24 +41,26 @@ def get_tooling():
                 "required": ["room", "state"]
             }
         }
-    }
+    }]
 
-    return tool
+    return tools
 
 
-def run_tool(parameters):
-    try:
-        room = parameters["room"]
-        state = parameters["state"]
+def run_tool(function_name, parameters):
+    if function_name == 'set_light':
+        try:
+            room = parameters["room"]
+            state = parameters["state"]
 
-        light = None
-        for cfg_light in config["lights"]:
-            if cfg_light["name"] == room:
-                light = cfg_light
+            light = None
+            for cfg_light in config["lights"]:
+                if cfg_light["name"] == room:
+                    light = cfg_light
 
-        topic = light["topic"]
-        payload = light["commands"][state]
-        get_client().publish(topic, payload)
-    except:
-        return "Lights could not be set."
-    return "Lights set."
+            topic = light["topic"]
+            payload = light["commands"][state]
+            get_client().publish(topic, payload)
+        except:
+            return "Lights could not be set."
+        return "Lights set."
+    return 'Tool not found.'
