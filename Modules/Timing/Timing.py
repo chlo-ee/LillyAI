@@ -75,7 +75,7 @@ def get_tooling():
         "type": "function",
         "function": {
             "name": "schedule_event",
-            "description": "Schedule an event. YOU (the assistant) will be reminded of the action at the provided datetime.",
+            "description": "Schedule an event. The AI assistant will be reminded of the action at the provided datetime.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -85,7 +85,7 @@ def get_tooling():
                     },
                     "action": {
                         "type": "string",
-                        "description": "The string that YOU (the assistant) will be reminded of at the given time"
+                        "description": "What the assistant should do at the given datetime"
                     }
                 },
                 "required": ["datetime", "action"]

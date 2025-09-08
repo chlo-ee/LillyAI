@@ -135,6 +135,7 @@
       "name": "Timed Actions",
       "schedule_seconds": 1,
       "inputs": ["Timing"],
+      "prompt": "[Scheduled Event] The following action should be executed now:",
       "processors": [{
         "module": "Ollama",
         "tools": [{
