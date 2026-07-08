@@ -95,7 +95,8 @@ def init_routes(routes):
 
 async def init():
     Logging.log('Lilly AI stack is booting.')
-    with open('config.json', 'r') as config_fp:
+    config_path = sys.argv[1] if len(sys.argv) > 1 else 'config.json'
+    with open(config_path, 'r') as config_fp:
         config = json.load(config_fp)
     Logging.severity_limit = Severity[config['log_level']]
     PromptTools.ai_name = config['assistant_name']
