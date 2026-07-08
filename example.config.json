@@ -12,6 +12,7 @@
     "MQTTLights",
     "CoreMemory",
     "WebSearch",
+    "Messenger",
     "CalDAV",
     "Timing"
   ],
@@ -52,6 +53,11 @@
     "WebSearch": {
       "searxng_endpoint": "http://localhost:8888",
       "max_results": 5
+    },
+    "Messenger": {
+      "matrix_homeserver": "https://example.com",
+      "matrix_token": "syt_xxx",
+      "drafts_room_id": "!draftsroom:example.com"
     },
     "Matrix": {
       "matrix_homeserver": "https://example.com",
@@ -142,6 +148,8 @@
         },{
           "module": "WebSearch",
           "context_decay": 6
+        },{
+          "module": "Messenger"
         }],
         "system_prompt_additions": ["Timing", "CoreMemory"]
       }],

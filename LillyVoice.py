@@ -90,6 +90,16 @@ relays that draft's text out into the original chat as you (the one path that
 reaches a real contact, gated on your explicit reaction). Each draft carries a
 DRAFT_META_KEY content field naming its source chat, since m.relates_to is
 room-scoped and can't link the drafts room to the portal.
+
+Compose requests
+-----------------
+The Lilly assistant can also file a compose request: a COMPOSE_META_KEY event
+posted into the drafts room asking for a message to be sent to a named
+contact. The bot resolves the contact by matching room members' display names,
+drafts the message in the user's per-contact voice (same style-corpus + recent
+context machinery as the draft-reply feature) and posts it as a normal
+👍-to-send draft. As with every draft, nothing is ever sent without the
+reaction.
 """
 
 import asyncio
@@ -178,6 +188,11 @@ APPROVE_EMOJI = "\U0001f44d"
 # Custom content field embedded in each posted draft so a 👍 can resolve which
 # chat to send to (m.relates_to is room-scoped and can't point across rooms).
 DRAFT_META_KEY = "ee.chlo.voicebot.draft"
+# Content field of a compose REQUEST posted into the drafts room (by the Lilly
+# assistant's compose_message tool, as @lilly): {"contact": <name>,
+# "instruction": <what the message should convey>}. The bot answers it with a
+# regular draft.
+COMPOSE_META_KEY = "ee.chlo.lilly.compose"
 
 # Prefix that marks the message as an automated bot summary. Plain text + a
 # leading emoji so it stays legible after every bridge's markup conversion.
@@ -257,6 +272,22 @@ DRAFT_INSTRUCTION = (
     "messages — do not be more formal or more verbose than the examples. Reply in "
     "the SAME LANGUAGE as the conversation. Output only the reply text, with no "
     "quotation marks, no name label and no explanation.\n\n"
+)
+# The Lilly assistant can ask the bot to compose (not send) a message to a
+# named contact. Same one-user-turn shape as DRAFT_INSTRUCTION, but framed
+# around a REQUEST from {me} rather than a reply to {other}.
+COMPOSE_INSTRUCTION = (
+    "You draft a text message that {me} will send to {other} in a private "
+    "chat. {me} asked their assistant to have a message sent to {other}; the "
+    "message must convey the following, expressed in {me}'s own words:\n"
+    "REQUEST: {instruction}\n\n"
+    "Write ONLY the message text {me} would send — in {me}'s own voice, "
+    "closely matching the tone, length, punctuation, capitalisation and "
+    "emoji use shown in the STYLE EXAMPLES below (real past messages {me} "
+    "wrote). Keep it natural and about as long as {me}'s usual messages. "
+    "Write in the SAME LANGUAGE {me} and {other} use in the CONVERSATION "
+    "below. Output only the message text, with no quotation marks, no name "
+    "label and no explanation.\n\n"
 )
 
 
@@ -530,7 +561,13 @@ class VoiceBot:
         (you're handling the reply yourself). Nothing is ever sent into `room` —
         the draft goes only to the unbridged DRAFTS_ROOM.
         """
-        if not DRAFTS_ROOM or room.room_id == DRAFTS_ROOM:
+        if not DRAFTS_ROOM:
+            return
+        if room.room_id == DRAFTS_ROOM:
+            # A compose request from the Lilly assistant is handled; all other
+            # drafts-room chatter is ignored (never drafted against).
+            if (event.source.get("content") or {}).get(COMPOSE_META_KEY):
+                asyncio.create_task(self._handle_compose(room, event))
             return
         if server_of(room.room_id) != LOCAL_SERVER:
             return
@@ -616,20 +653,8 @@ class VoiceBot:
                      len(self._global_style), sampled)
         return self._global_style
 
-    async def _make_draft(self, room: MatrixRoom):
-        events = await self._recent_text(room, DRAFT_HISTORY_FETCH)
-        if not events:
-            return
-        # If your own message is the most recent, you already replied — skip.
-        if events[-1].sender == USER_ID:
-            return
-        # Own display name, preferring the raw one from room.users (room.user_name
-        # can add a "(@mxid)" disambiguation tag), falling back to the localpart.
-        me_user = room.users.get(USER_ID)
-        me = (me_user.display_name if me_user else None) \
-            or USER_ID.split(":", 1)[0].lstrip("@")
-        me = BRIDGE_TAG_RE.sub("", me).strip() or me
-        other = self.speaker_name(room, events[-1])
+    async def _style_examples(self, room: MatrixRoom, events) -> list:
+        """Your past messages as a style corpus: in-room first, cold-start top-up."""
         # Style corpus: YOUR past messages in this room (per-contact voice).
         in_room = self._own_messages(events)[-DRAFT_STYLE_EXAMPLES:]
         yours = in_room
@@ -644,6 +669,23 @@ class VoiceBot:
             yours = merged[-DRAFT_STYLE_EXAMPLES:]
             log.info("cold start in %s (%d in-room); topped up to %d examples",
                      room.room_id, len(in_room), len(yours))
+        return yours
+
+    async def _make_draft(self, room: MatrixRoom):
+        events = await self._recent_text(room, DRAFT_HISTORY_FETCH)
+        if not events:
+            return
+        # If your own message is the most recent, you already replied — skip.
+        if events[-1].sender == USER_ID:
+            return
+        # Own display name, preferring the raw one from room.users (room.user_name
+        # can add a "(@mxid)" disambiguation tag), falling back to the localpart.
+        me_user = room.users.get(USER_ID)
+        me = (me_user.display_name if me_user else None) \
+            or USER_ID.split(":", 1)[0].lstrip("@")
+        me = BRIDGE_TAG_RE.sub("", me).strip() or me
+        other = self.speaker_name(room, events[-1])
+        yours = await self._style_examples(room, events)
         convo = events[-DRAFT_CONTEXT_MESSAGES:]
 
         def label(e):
@@ -710,6 +752,153 @@ class VoiceBot:
         if ev_id:
             self._drafts[ev_id] = (room.room_id, source_event.event_id, draft)
         log.info("posted draft reply to %s into drafts room", other)
+
+    # ── Compose requests (Lilly assistant asks for a message to a contact) ────
+    async def _handle_compose(self, room: MatrixRoom, event):
+        """Answer a compose request: resolve the contact, draft in the user's
+        per-contact voice, post as a normal 👍-to-send draft. Never sends
+        anything itself.
+        """
+        try:
+            allowed = event.sender == USER_ID or (
+                MATRIX_LILLY_USER_ID and event.sender == MATRIX_LILLY_USER_ID)
+            if not allowed:
+                log.warning("ignoring compose request from unauthorised sender %s",
+                            event.sender)
+                return
+            meta = (event.source.get("content") or {}).get(COMPOSE_META_KEY) or {}
+            contact = (meta.get("contact") or "").strip()
+            instruction = (meta.get("instruction") or "").strip()
+            if not contact or not instruction:
+                await self._notify_drafts(
+                    "⚠️ Compose request missing contact or instruction.",
+                    reply_to=event.event_id)
+                return
+            matches = self._find_contact_room(contact)
+            if not matches:
+                await self._notify_drafts(f"⚠️ No chat found for '{contact}'.",
+                                          reply_to=event.event_id)
+                return
+            if len(matches) > 1:
+                # "Write Mama" while Mama is in her 1:1 chat AND the family
+                # group means the 1:1 chat: when exactly one direct (2-member)
+                # room matches, take it. Otherwise it's genuinely ambiguous
+                # (e.g. two different people with the same name).
+                direct = [m for m in matches if len(m[0].users) == 2]
+                if len(direct) == 1:
+                    matches = direct
+                else:
+                    names = ", ".join(f"{disp} ({len(r.users)} members)"
+                                      for r, disp in matches)
+                    await self._notify_drafts(
+                        f"⚠️ '{contact}' is ambiguous: {names} — be more specific.",
+                        reply_to=event.event_id)
+                    return
+            target_room, other = matches[0]
+            events = await self._recent_text(target_room, DRAFT_HISTORY_FETCH)
+            # Own display name, same derivation as _make_draft, against the
+            # target room.
+            me_user = target_room.users.get(USER_ID)
+            me = (me_user.display_name if me_user else None) \
+                or USER_ID.split(":", 1)[0].lstrip("@")
+            me = BRIDGE_TAG_RE.sub("", me).strip() or me
+            yours = await self._style_examples(target_room, events)
+            convo = events[-DRAFT_CONTEXT_MESSAGES:]
+
+            def label(e):
+                return me if e.sender == USER_ID else self.speaker_name(target_room, e)
+
+            style_block = ("STYLE EXAMPLES (real past messages written by "
+                           f"{me}):\n" + "\n".join(f"- {m}" for m in yours) + "\n\n"
+                           ) if yours else ""
+            convo_block = ("CONVERSATION so far (most recent last):\n"
+                           + "\n".join(f"{label(e)}: {e.body.strip()}" for e in convo)
+                           ) if convo else ""
+            prompt = (COMPOSE_INSTRUCTION.format(me=me, other=other, instruction=instruction)
+                      + style_block + convo_block + f"\n\nMessage from {me} to {other}:")
+            msgs = [{"role": "user", "content": prompt}]
+            draft = await llama_chat(self.http, msgs, max_tokens=2048,
+                                     temperature=0.7, extra={"repeat_penalty": 1.1})
+            if not draft:
+                log.warning("empty compose draft to %s; retrying with anti-loop sampling",
+                            other)
+                draft = await llama_chat(self.http, msgs, max_tokens=2048,
+                                         temperature=0.6, extra={"repeat_penalty": 1.3})
+            if not draft:
+                await self._notify_drafts(
+                    f"⚠️ Could not draft a message for '{contact}'.",
+                    reply_to=event.event_id)
+                return
+            await self._post_compose_draft(target_room, other, instruction, draft)
+        except Exception:
+            log.exception("compose request failed")
+
+    def _find_contact_room(self, name: str) -> list:
+        """Resolve a contact name to chat rooms.
+
+        Matches the display names of room members (excluding the user and
+        Lilly) across LOCAL_SERVER-hosted rooms, mautrix bridge tags stripped.
+        Exact (case-insensitive) matches beat substring matches; among equal
+        matches, rooms with fewer members (1:1 chats) come first. Returns a
+        list of (room, display_name) — empty, one, or several (ambiguous).
+        """
+        needle = name.strip().casefold()
+        if not needle:
+            return []
+        exact: dict = {}
+        partial: dict = {}
+        for room in self.client.rooms.values():
+            if room.room_id in (DRAFTS_ROOM, MATRIX_LILLY_DM_ROOM):
+                continue
+            if server_of(room.room_id) != LOCAL_SERVER:
+                continue
+            for uid, user in room.users.items():
+                if uid == USER_ID or (MATRIX_LILLY_USER_ID and uid == MATRIX_LILLY_USER_ID):
+                    continue
+                disp = BRIDGE_TAG_RE.sub("", (user.display_name or uid)).strip()
+                if not disp:
+                    continue
+                if disp.casefold() == needle:
+                    exact[room.room_id] = (room, disp)
+                elif needle in disp.casefold() and room.room_id not in exact:
+                    partial.setdefault(room.room_id, (room, disp))
+        chosen = list(exact.values()) if exact else list(partial.values())
+        chosen.sort(key=lambda pair: len(pair[0].users))
+        return chosen
+
+    async def _post_compose_draft(self, target_room: MatrixRoom, other: str,
+                                  instruction: str, draft: str):
+        """Post a composed message as a normal draft into DRAFTS_ROOM — same
+        DRAFT_META_KEY contract, so the existing 👍 approval sends it;
+        source_event_id is None (nothing to reply to in the target chat).
+        """
+        quoted = instruction.strip()
+        if len(quoted) > 300:
+            quoted = quoted[:300] + " […]"
+        header = f"✏️ Draft to {other} — requested via Lilly — 👍 to send"
+        body = f"{header}\n(request: {quoted})\n\n{draft}"
+        formatted = (f"✏️ <b>Draft to {html.escape(other)}</b> — requested via Lilly "
+                     f"— 👍 to send<br><i>request: {html.escape(quoted)}</i><br><br>"
+                     + html.escape(draft).replace("\n", "<br>"))
+        content = {
+            "msgtype": "m.text",
+            "body": body,
+            "format": "org.matrix.custom.html",
+            "formatted_body": formatted,
+            DRAFT_META_KEY: {
+                "source_room_id": target_room.room_id,
+                "source_event_id": None,
+                "text": draft,
+            },
+        }
+        resp = await self.drafts_client.room_send(
+            DRAFTS_ROOM, message_type="m.room.message", content=content,
+            ignore_unverified_devices=True,
+        )
+        ev_id = getattr(resp, "event_id", None)
+        if ev_id:
+            self._drafts[ev_id] = (target_room.room_id, None, draft)
+        log.info("posted composed draft to %s into drafts room", other)
 
     # ── Approval (👍 a draft → send it) ──────────────────────────────────────
     async def on_reaction(self, room: MatrixRoom, event):

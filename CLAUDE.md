@@ -124,6 +124,7 @@ A route defines a full pipeline in `config.json`:
 - **MQTTLights** — `set_light` (MQTT-based light control)
 - **Timing** — `schedule_event` (schedule future LillyAI actions)
 - **WebSearch** — `search_web` (live web search via a SearXNG instance's JSON API)
+- **Messenger** — `compose_message` (files a compose request; LillyVoice drafts it in the user's voice, 👍 in the drafts room sends it)
 
 ### Outputs
 - **Matrix** — sends Markdown-rendered responses via Matrix chat
