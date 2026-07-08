@@ -6,7 +6,10 @@ from bs4 import BeautifulSoup
 config = {}
 
 async def get_data():
-    with imapclient.IMAPClient(config['imap_host']) as client:
+    # timeout: a stalled IMAP server must never hang the (synchronous) event
+    # loop forever - a timeout error is caught by the scheduler and retried
+    # on the next tick.
+    with imapclient.IMAPClient(config['imap_host'], timeout=30) as client:
         client.login(config['imap_user'], config['imap_password'])
         client.select_folder('INBOX')
         messages = client.search(['UNSEEN'])

@@ -70,7 +70,10 @@ class OpenAICompatInstance:
             }
             if len(tool_descriptions) > 0:
                 payload['tools'] = tool_descriptions
-            response = requests.post(f'{self.endpoint}/v1/chat/completions', json=payload)
+            # Generous ceiling for slow local generation; without it a hung
+            # server would freeze the whole event loop forever.
+            response = requests.post(f'{self.endpoint}/v1/chat/completions', json=payload,
+                                     timeout=600)
             response.raise_for_status()
             Logging.log(response.json(), severity=Severity.DEBUG)
             reply = response.json()['choices'][0]['message']

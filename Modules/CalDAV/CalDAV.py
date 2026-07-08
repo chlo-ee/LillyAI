@@ -8,7 +8,7 @@ config = {}
 tool_functions = ['get_calendar_events', 'add_calendar_event']
 
 def get_events(url, username, password, begin, end):
-    with get_davclient(username=username, password=password,url=url) as client:
+    with get_davclient(username=username, password=password, url=url, timeout=30) as client:
         calendar = client.calendar(url=url)
 
         events = calendar.search(
@@ -111,7 +111,8 @@ def create_event(begin, end, summary, calendar):
     if calendar_config is None:
         return 'Invalid calendar selected'
 
-    with get_davclient(username=calendar_config['username'], password=calendar_config['password'], url=calendar_config['url']) as client:
+    with get_davclient(username=calendar_config['username'], password=calendar_config['password'],
+                       url=calendar_config['url'], timeout=30) as client:
         cal = client.calendar(url=calendar_config['url'])
         cal.save_event(
             dtstart=begin,

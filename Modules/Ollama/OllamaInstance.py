@@ -66,7 +66,9 @@ class OllamaInstance:
             }
             if len(tool_descriptions) > 0:
                 payload['tools'] = tool_descriptions
-            response = requests.post(f'{self.endpoint}/chat', json=payload)
+            # Generous ceiling for slow local generation; without it a hung
+            # server would freeze the whole event loop forever.
+            response = requests.post(f'{self.endpoint}/chat', json=payload, timeout=600)
             Logging.log(response.json(), severity=Severity.DEBUG)
             reply = response.json()['message']
             reply['content'] = reply['content'].lstrip().rstrip()
