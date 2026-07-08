@@ -1,5 +1,8 @@
+import asyncio
 from datetime import datetime
-from time import sleep
+
+import Logging
+from Logging import Severity
 
 
 class Scheduler:
@@ -10,18 +13,18 @@ class Scheduler:
         self.last_tick_minute = datetime.now().time().minute
 
     async def tick(self):
-        promises = []
         now = datetime.now().time()
         for (router, interval, time_of_day) in self.schedules:
             if ((interval is not None and self.runtime_counter % interval == 0) or   # interval scheduling
                     (time_of_day is not None and self.last_tick_minute != now.minute # daily scheduling
                      and now.hour == time_of_day.hour
                      and now.minute == time_of_day.minute)):
-                promises.append(router.run())
+                try:
+                    await router.run()
+                except Exception as exception:
+                    Logging.log(f'Route {router.name} failed: {exception}', severity=Severity.ERROR)
         self.last_tick_minute = now.minute
         self.runtime_counter += 1
-        for promise in promises:
-            await promise
 
     def schedule(self, router, interval=None, time_of_day=None):
         self.schedules.append((router, interval, time_of_day))
@@ -29,7 +32,7 @@ class Scheduler:
     async def start(self):
         while self.enabled:
             await self.tick()
-            sleep(1)
+            await asyncio.sleep(1)
 
     def stop(self):
         self.enabled = False
