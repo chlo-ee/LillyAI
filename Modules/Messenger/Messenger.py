@@ -37,7 +37,9 @@ def get_tooling():
                     "message": {
                         "type": "string",
                         "description": "What the message should convey, in the user's language - the intent, "
-                                        "not necessarily the final wording"
+                                        "not necessarily the final wording. Relay the user's intent faithfully "
+                                        "and completely, but add NOTHING they did not ask for - no offers of "
+                                        "help, no extra questions, no pleasantries of your own"
                     }
                 },
                 "required": ["contact", "message"]

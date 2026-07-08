@@ -277,17 +277,22 @@ DRAFT_INSTRUCTION = (
 # named contact. Same one-user-turn shape as DRAFT_INSTRUCTION, but framed
 # around a REQUEST from {me} rather than a reply to {other}.
 COMPOSE_INSTRUCTION = (
-    "You draft a text message that {me} will send to {other} in a private "
-    "chat. {me} asked their assistant to have a message sent to {other}; the "
-    "message must convey the following, expressed in {me}'s own words:\n"
+    "{me} wants to send {other} a text message in a private chat but hasn't "
+    "written it yet. Write that message for {me}, so {me} can send it as-is.\n\n"
+    "What the message needs to say (a description of the content — NOT the "
+    "message itself, do not copy its wording):\n"
     "REQUEST: {instruction}\n\n"
-    "Write ONLY the message text {me} would send — in {me}'s own voice, "
-    "closely matching the tone, length, punctuation, capitalisation and "
-    "emoji use shown in the STYLE EXAMPLES below (real past messages {me} "
-    "wrote). Keep it natural and about as long as {me}'s usual messages. "
-    "Write in the SAME LANGUAGE {me} and {other} use in the CONVERSATION "
-    "below. Output only the message text, with no quotation marks, no name "
-    "label and no explanation.\n\n"
+    "Rules:\n"
+    "- Write it the way {me} writes: match the tone, length, punctuation, "
+    "capitalisation and emoji use of the STYLE EXAMPLES below (real past "
+    "messages {me} wrote).\n"
+    "- Say only what the REQUEST describes. Do not add offers, questions or "
+    "pleasantries of your own — {me} is a person texting a friend, not an "
+    "assistant, so never end on phrases like 'let me know if you need "
+    "anything'.\n"
+    "- Use the same language as the CONVERSATION below.\n"
+    "- Output only the final message text — no quotation marks, no name "
+    "label, no explanation.\n\n"
 )
 
 
