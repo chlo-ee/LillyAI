@@ -296,6 +296,47 @@ def server_of(matrix_id: str) -> str:
     return matrix_id.split(":", 1)[1] if ":" in matrix_id else ""
 
 
+# ── Contact-name matching (compose requests) ──────────────────────────────────
+# Network hints a compose query may carry ("Jan on WhatsApp", "Jan tg"), mapped
+# to the mautrix ghost mxid prefix of that bridge.
+NETWORK_ALIASES = {
+    "whatsapp": "whatsapp", "wa": "whatsapp",
+    "signal": "signal",
+    "telegram": "telegram", "tg": "telegram",
+}
+# Filler words between name and network hint ("Jan AUF WhatsApp") — dropped
+# from the needle only when a network hint was actually present.
+NETWORK_STOPWORDS = {"auf", "on", "via", "per", "über", "uber", "in", "im", "bei"}
+
+
+def _words(text: str) -> list:
+    """Casefolded word list; splits on whitespace, hyphens, emoji, punctuation."""
+    return [w for w in re.split(r"[\W_]+", text.casefold()) if w]
+
+
+def _name_rank(needle_words: list, display_name: str) -> int:
+    """How well a display name matches: 3 = the full name, 2 = every needle
+    word appears as a whole word ("jan" → "Jan Böhringer" but NOT
+    "Jana-Maria"), 1 = every needle word is a word prefix ("jan" → "Jana"),
+    0 = no match."""
+    d_words = _words(display_name)
+    if not needle_words or not d_words:
+        return 0
+    if needle_words == d_words:
+        return 3
+    if all(w in d_words for w in needle_words):
+        return 2
+    if all(any(dw.startswith(w) for dw in d_words) for w in needle_words):
+        return 1
+    return 0
+
+
+def _member_network(uid: str):
+    """Bridge network of a mautrix ghost, from its mxid prefix — or None."""
+    prefix = uid.lstrip("@").split(":", 1)[0].split("_", 1)[0]
+    return prefix if prefix in ("whatsapp", "signal", "telegram") else None
+
+
 async def llama_chat(session: aiohttp.ClientSession, messages, max_tokens: int,
                      temperature: float = 0.2, extra: dict = None) -> str:
     """POST an OpenAI-style chat completion to the ai host and return the text."""
@@ -780,21 +821,22 @@ class VoiceBot:
                                           reply_to=event.event_id)
                 return
             if len(matches) > 1:
-                # "Write Mama" while Mama is in her 1:1 chat AND the family
-                # group means the 1:1 chat: when exactly one direct (2-member)
-                # room matches, take it. Otherwise it's genuinely ambiguous
-                # (e.g. two different people with the same name).
-                direct = [m for m in matches if len(m[0].users) == 2]
-                if len(direct) == 1:
-                    matches = direct
-                else:
-                    names = ", ".join(f"{disp} ({len(r.users)} members)"
-                                      for r, disp in matches)
-                    await self._notify_drafts(
-                        f"⚠️ '{contact}' is ambiguous: {names} — be more specific.",
-                        reply_to=event.event_id)
-                    return
-            target_room, other = matches[0]
+                # _find_contact_room already preferred word-exact names, the
+                # contact's own portal over groups, and any network hint. More
+                # than one survivor is genuinely ambiguous (same person on two
+                # bridges, or two people sharing the name) — ask, don't guess.
+                options = []
+                for r, disp, network in matches:
+                    where = network or f"{len(r.users)} members"
+                    entry = f"{disp} ({where})"
+                    if entry not in options:
+                        options.append(entry)
+                await self._notify_drafts(
+                    f"⚠️ '{contact}' is ambiguous: {', '.join(options)} — be "
+                    f"more specific, e.g. a full name or '{contact} on WhatsApp'.",
+                    reply_to=event.event_id)
+                return
+            target_room, other, _network = matches[0]
             events = await self._recent_text(target_room, DRAFT_HISTORY_FETCH)
             # Own display name, same derivation as _make_draft, against the
             # target room.
@@ -836,35 +878,77 @@ class VoiceBot:
     def _find_contact_room(self, name: str) -> list:
         """Resolve a contact name to chat rooms.
 
-        Matches the display names of room members (excluding the user and
-        Lilly) across LOCAL_SERVER-hosted rooms, mautrix bridge tags stripped.
-        Exact (case-insensitive) matches beat substring matches; among equal
-        matches, rooms with fewer members (1:1 chats) come first. Returns a
-        list of (room, display_name) — empty, one, or several (ambiguous).
+        Word-aware ranking so "Jan" hits "Jan Böhringer" and not "Jana-Maria":
+        full-name match > word-exact match > word-prefix match; only the best
+        tier survives. A room whose own NAME matches is treated as the
+        contact's direct chat (mautrix names 1:1 portals after the contact —
+        member counts are useless there, the portal contains ghost + bridge
+        bot) and beats rooms where only a member matched (groups). A network
+        hint in the query ("Jan on WhatsApp" / "Jan Telegram") filters by the
+        bridge, detected from the ghost's mxid prefix (@whatsapp_…, …).
+
+        Returns a list of (room, display_name, network) — empty, one, or
+        several (genuinely ambiguous). Best candidates first.
         """
-        needle = name.strip().casefold()
+        tokens = _words(name)
+        network_hint = None
+        for t in tokens:
+            if t in NETWORK_ALIASES:
+                network_hint = NETWORK_ALIASES[t]
+        needle = [t for t in tokens if t not in NETWORK_ALIASES]
+        if network_hint:
+            needle = [t for t in needle if t not in NETWORK_STOPWORDS]
         if not needle:
             return []
-        exact: dict = {}
-        partial: dict = {}
+
+        candidates = []
         for room in self.client.rooms.values():
             if room.room_id in (DRAFTS_ROOM, MATRIX_LILLY_DM_ROOM):
                 continue
             if server_of(room.room_id) != LOCAL_SERVER:
                 continue
+            raw_room_name = (getattr(room, "name", None)
+                             or getattr(room, "display_name", None) or "")
+            room_rank = _name_rank(needle, BRIDGE_TAG_RE.sub("", raw_room_name))
+            member_rank = 0
+            matched_disp = ""
+            room_network = None
             for uid, user in room.users.items():
                 if uid == USER_ID or (MATRIX_LILLY_USER_ID and uid == MATRIX_LILLY_USER_ID):
                     continue
+                if room_network is None:
+                    room_network = _member_network(uid)
                 disp = BRIDGE_TAG_RE.sub("", (user.display_name or uid)).strip()
                 if not disp:
                     continue
-                if disp.casefold() == needle:
-                    exact[room.room_id] = (room, disp)
-                elif needle in disp.casefold() and room.room_id not in exact:
-                    partial.setdefault(room.room_id, (room, disp))
-        chosen = list(exact.values()) if exact else list(partial.values())
-        chosen.sort(key=lambda pair: len(pair[0].users))
-        return chosen
+                r = _name_rank(needle, disp)
+                if r > member_rank:
+                    member_rank = r
+                    matched_disp = disp
+            rank = max(room_rank, member_rank)
+            if rank == 0:
+                continue
+            display = matched_disp or BRIDGE_TAG_RE.sub("", raw_room_name).strip()
+            candidates.append({
+                "room": room,
+                "display": display,
+                "network": room_network,
+                "rank": rank,
+                # Room named after the contact = their direct chat/portal.
+                "dm": room_rank >= member_rank and room_rank > 0,
+            })
+
+        if not candidates:
+            return []
+        best = max(c["rank"] for c in candidates)
+        candidates = [c for c in candidates if c["rank"] == best]
+        if network_hint and any(c["network"] == network_hint for c in candidates):
+            candidates = [c for c in candidates if c["network"] == network_hint]
+        dm_candidates = [c for c in candidates if c["dm"]]
+        if dm_candidates:
+            candidates = dm_candidates
+        candidates.sort(key=lambda c: len(c["room"].users))
+        return [(c["room"], c["display"], c["network"]) for c in candidates]
 
     async def _post_compose_draft(self, target_room: MatrixRoom, other: str,
                                   instruction: str, draft: str):

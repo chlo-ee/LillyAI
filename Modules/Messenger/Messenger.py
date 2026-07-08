@@ -30,7 +30,9 @@ def get_tooling():
                 "properties": {
                     "contact": {
                         "type": "string",
-                        "description": "Name of the person or chat the message is for, as the user said it"
+                        "description": "Name of the person or chat the message is for, as the user "
+                                        "said it. If the user names a messenger network, include it, "
+                                        "e.g. 'Jan on WhatsApp'"
                     },
                     "message": {
                         "type": "string",
