@@ -70,6 +70,34 @@ This gives each module a configuration. Those are highly dependent on the module
 
 This adds the configuration for the "Email" module. This module requires three config-values which are set here.
 
+### LLM Processor Modules
+
+Two processor modules are available for talking to an LLM. "Ollama" uses Ollama's native API:
+
+```json
+"Ollama": {
+  "ollama_endpoint": "http://ai.example.com:11434/api",
+  "ollama_model": "qwen3:14b",
+  "context_database": "ollama-context.sqlite",
+  "short_term_memory_minutes": 960
+}
+```
+
+"OpenAICompat" works with any server that offers an OpenAI-compatible `/v1/chat/completions` endpoint, for example llama.cpp (`llama-server`), MLX (`mlx_lm.server`), LM Studio or vLLM:
+
+```json
+"OpenAICompat": {
+  "endpoint": "http://localhost:8080",
+  "model": "mlx-community/Qwen3-14B-4bit",
+  "context_database": "openai-compat-context.sqlite",
+  "short_term_memory_minutes": 960
+}
+```
+
+Note that `endpoint` is the server's base URL - the module appends `/v1/chat/completions` itself. Some servers (like llama.cpp with a single loaded model) ignore the `model` value.
+
+For both modules, `context_database` is the SQLite file used to store Lilly's conversation context and `short_term_memory_minutes` determines how long messages stay in her context.
+
 ## Routes
 
 Here each route that information can take is listed.
