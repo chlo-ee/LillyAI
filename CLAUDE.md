@@ -33,10 +33,23 @@ python -m LillyAI
 
 Requires a running LLM server: either Ollama (`ollama serve`) with the configured model pulled, or any OpenAI-compatible server (e.g. `llama-server -m model.gguf`, `mlx_lm.server --model …`) when using the OpenAICompat module.
 
+### Nix / NixOS
+
+The repo is a flake:
+
+- `nix run .# -- config.json` — run Lilly directly
+- `packages.default` (`lillyai`), `packages.voice` (`lillyai-voice`)
+- `nixosModules.default` — `services.lillyai` (config.json via LoadCredential, state in `/var/lib/lillyai`)
+- `nixosModules.voice` — `services.lillyai-voice` (LillyVoice, env-file driven)
+
+Deployed on the `lilly` host of the NixOS fleet (see the NixOS repo's `modules/nixos/lilly.nix`).
+
 ## Project Structure
 
 ```
 LillyAI.py          # Entry point — loads modules, wires routes, starts scheduler
+LillyVoice.py       # Standalone Matrix voice-memo bot (transcribe/summarise/draft)
+flake.nix           # Nix flake: packages (lillyai, lillyai-voice) + NixOS modules
 Router.py           # Routes class — validates & executes input→processor→output pipelines
 Scheduler.py        # Interval and daily scheduling of routes
 PromptTools.py      # Builds system prompts (name, language, personality)
@@ -113,3 +126,7 @@ A route defines a full pipeline in `config.json`:
 
 ### Outputs
 - **Matrix** — sends Markdown-rendered responses via Matrix chat
+
+## LillyVoice (standalone service)
+
+`LillyVoice.py` is a separate long-running service (`python -m LillyVoice`), not a route module — voice memos need room-scoped routing, audio chunking (ffmpeg → ≤28s WAV → multimodal llama.cpp) and E2EE, which don't fit the text-pipeline architecture. It syncs as the *user's* account (bridge portals reject foreign bots), transcribes + summarises voice memos in bridged chats, drafts replies in the user's voice into an unbridged drafts room, and relays a draft out when the user reacts 👍. When `MATRIX_LILLY_USER_ID`/`MATRIX_LILLY_TOKEN` are set, drafts and notices are posted by Lilly's own account instead. Config is all environment variables — see the module docstring.
