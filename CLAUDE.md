@@ -123,6 +123,7 @@ A route defines a full pipeline in `config.json`:
 - **CoreMemory** — `store_memory` (SQLite-backed persistent memory)
 - **MQTTLights** — `set_light` (MQTT-based light control)
 - **Timing** — `schedule_event` (schedule future LillyAI actions)
+- **WebSearch** — `search_web` (live web search via a SearXNG instance's JSON API)
 
 ### Outputs
 - **Matrix** — sends Markdown-rendered responses via Matrix chat
