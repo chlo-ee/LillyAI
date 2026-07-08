@@ -45,7 +45,8 @@
                 $out/share/lillyai/
               makeWrapper ${pythonEnv}/bin/python $out/bin/lillyai \
                 --add-flags "-m LillyAI" \
-                --set PYTHONPATH $out/share/lillyai
+                --set PYTHONPATH $out/share/lillyai \
+                --set PYTHONUNBUFFERED 1
               runHook postInstall
             '';
           };
