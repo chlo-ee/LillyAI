@@ -98,7 +98,14 @@ async def init():
     config_path = sys.argv[1] if len(sys.argv) > 1 else 'config.json'
     with open(config_path, 'r') as config_fp:
         config = json.load(config_fp)
-    Logging.severity_limit = Severity[config['log_level']]
+    log_level = config['log_level']
+    if log_level in Severity.__members__:
+        Logging.severity_limit = Severity[log_level]
+    else:
+        Logging.log(f'Unknown log_level "{log_level}" - valid values: '
+                    f'{", ".join(Severity.__members__)}. Falling back to INFO.',
+                    severity=Severity.ERROR)
+        Logging.severity_limit = Severity.INFO
     PromptTools.ai_name = config['assistant_name']
     PromptTools.user_name = config['user_name']
     PromptTools.language = config['language']
