@@ -1,4 +1,7 @@
-from time import sleep
+import asyncio
+
+import Logging
+from Logging import Severity
 
 
 class Scheduler:
@@ -10,7 +13,10 @@ class Scheduler:
     async def tick(self):
         for (router, interval) in self.schedules:
             if self.runtime_counter % interval == 0:
-                await router.run()
+                try:
+                    await router.run()
+                except Exception as exception:
+                    Logging.log(f'Route {router.name} failed: {exception}', severity=Severity.ERROR)
         self.runtime_counter += 1
 
     def schedule(self, router, interval):
@@ -19,7 +25,7 @@ class Scheduler:
     async def start(self):
         while self.enabled:
             await self.tick()
-            sleep(1)
+            await asyncio.sleep(1)
 
     def stop(self):
         self.enabled = False
