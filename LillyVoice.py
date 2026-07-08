@@ -68,6 +68,14 @@ Draft-reply (optional; the feature is inert unless MATRIX_DRAFTS_ROOM is set):
                           reach a contact.
     DRAFT_IDLE_SECONDS    debounce before drafting after the last inbound msg (20)
 
+Voice commands (optional; inert unless MATRIX_LILLY_DM_ROOM is set):
+    MATRIX_LILLY_DM_ROOM  !room:chlo.ee   the DM room shared with the Lilly
+                          assistant. A voice memo YOU send there is transcribed
+                          — NOT summarised — and the plain transcript is posted
+                          back into that same room as you, prefixed 🎙️; Lilly's
+                          core service then reads it like any typed message and
+                          answers it, giving you a voice-command path into Lilly.
+
 When someone messages you in ANY chlo.ee-hosted room (same scope as the memo
 summaries; the drafts room itself is excluded), after a short idle the bot pages
 back through that room, uses YOUR own past messages there as a per-contact style
@@ -144,6 +152,12 @@ STATE_DIR = os.environ.get("STATE_DIR", "/var/lib/matrix-voicebot")
 # sends. If only one of the two is set, main() treats it as a config error.
 MATRIX_LILLY_USER_ID = os.environ.get("MATRIX_LILLY_USER_ID", "")
 MATRIX_LILLY_TOKEN = os.environ.get("MATRIX_LILLY_TOKEN", "")
+
+# Optional; the DM room shared with the Lilly assistant. A voice memo YOU send
+# there is transcribed and the transcript is posted back into the room (as you,
+# prefixed 🎙️) instead of summarised — Lilly's core service then picks it up as
+# a normal chat message and acts on it ("voice commands"). Inert when unset.
+MATRIX_LILLY_DM_ROOM = os.environ.get("MATRIX_LILLY_DM_ROOM", "")
 
 # ── Draft-reply feature (optional; inert unless DRAFTS_ROOM is set) ───────────
 # When someone messages you in ANY chlo.ee-hosted room (same scope as the memo
@@ -394,6 +408,21 @@ class VoiceBot:
         # Handles both RoomMessageAudio (plaintext) and RoomEncryptedAudio (E2EE).
         if server_of(room.room_id) != LOCAL_SERVER:
             return
+        # Voice command: a memo YOU send in the Lilly DM room is transcribed and
+        # posted back as plain text (as you) — Lilly's core service reads the
+        # room and answers it like a typed message. No summary in this room.
+        if MATRIX_LILLY_DM_ROOM and room.room_id == MATRIX_LILLY_DM_ROOM:
+            if event.sender != USER_ID:
+                return
+            log.info("voice command memo in the Lilly DM room")
+            try:
+                raw = await self.fetch_audio(event)
+                transcript, _ = await self.transcribe(raw)
+            except Exception:
+                log.exception("failed to transcribe a voice command")
+                return
+            await self.post_transcript(room, event, transcript)
+            return
         log.info("voice memo in %s from %s", room.room_id, event.sender)
         try:
             raw = await self.fetch_audio(event)
@@ -403,7 +432,8 @@ class VoiceBot:
             return
         await self.post_summary(room, event, summary)
 
-    async def summarise(self, raw: bytes, speaker: str) -> str:
+    async def transcribe(self, raw: bytes):
+        """Chunk the audio and transcribe it; returns (transcript, chunk_count)."""
         with tempfile.TemporaryDirectory(prefix="voicebot-") as workdir:
             chunks = split_audio(raw, workdir)
             if not chunks:
@@ -419,7 +449,11 @@ class VoiceBot:
         if not transcript:
             raise RuntimeError("empty transcript")
         log.info("transcript: %d chars", len(transcript))
-        template = (BULLET_INSTRUCTION if len(chunks) > BULLET_THRESHOLD_CHUNKS
+        return transcript, len(chunks)
+
+    async def summarise(self, raw: bytes, speaker: str) -> str:
+        transcript, chunk_count = await self.transcribe(raw)
+        template = (BULLET_INSTRUCTION if chunk_count > BULLET_THRESHOLD_CHUNKS
                     else SUMMARY_INSTRUCTION)
         instruction = template.format(speaker=speaker)
         msgs = [{"role": "user", "content": f"{instruction}{transcript}"}]
@@ -459,6 +493,28 @@ class VoiceBot:
         # In an E2EE room nio encrypts this automatically; ignore_unverified_devices
         # lets it send to the room's unverified devices (otherwise it refuses).
         # No-op in a plaintext bridge portal.
+        await self.client.room_send(
+            room.room_id, message_type="m.room.message", content=content,
+            ignore_unverified_devices=True,
+        )
+
+    async def post_transcript(self, room: MatrixRoom, event, transcript: str):
+        """Post a plain transcript into the Lilly DM room, as the primary account.
+
+        Posted as the primary account into the DM room so the Lilly assistant
+        treats it as user input; the 🎙️ marks it as a transcription in the room
+        history.
+        """
+        body = f"\U0001f399️ {transcript}"
+        formatted = ("\U0001f399️ "
+                     + html.escape(transcript).replace("\n", "<br>"))
+        content = {
+            "msgtype": "m.text",
+            "body": body,
+            "format": "org.matrix.custom.html",
+            "formatted_body": formatted,
+            "m.relates_to": {"m.in_reply_to": {"event_id": event.event_id}},
+        }
         await self.client.room_send(
             room.room_id, message_type="m.room.message", content=content,
             ignore_unverified_devices=True,
