@@ -142,6 +142,10 @@ A prompt to give to the processor. Note that each processor can alter the prompt
 
 The list of modules that should be checked for input. You can use multiple inputs per route.
 
+#### aggregate_inputs
+
+Optional, defaults to false. Normally a route stops at the first input module that has data and uses only that. If you set this to `true`, all inputs are collected instead, each wrapped in its own `=== <Module> ===` section and joined together, so the processor sees all of them at once. If an input module fails while aggregating, it is logged and simply left out of the result rather than failing the whole route. This is used by the "Morning Briefing" route to combine calendar, email status and weather into one prompt.
+
 #### processors
 
 The list of processors to run the input through. Each processor consists of a module and a list of tools that are provided to the module.

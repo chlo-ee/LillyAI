@@ -3,12 +3,13 @@ from Logging import Severity
 
 
 class Router:
-    def __init__(self, inputs: list, processors: list, outputs: list, prompt: str|None, name: str):
+    def __init__(self, inputs: list, processors: list, outputs: list, prompt: str|None, name: str, aggregate_inputs: bool = False):
         self.inputs = inputs
         self.processors = processors
         self.outputs = outputs
         self.prompt = prompt
         self.name = name
+        self.aggregate_inputs = aggregate_inputs
 
     def verify(self):
         is_valid = True
@@ -49,6 +50,21 @@ class Router:
 
 
     async def get_input(self):
+        if self.aggregate_inputs:
+            # Collect from ALL inputs instead of returning the first non-empty one.
+            # One failing input must not kill the aggregate route (a briefing without
+            # the weather section beats no briefing).
+            sections = []
+            for input_module in self.inputs:
+                try:
+                    input_data = await input_module.get_data()
+                except Exception as exception:
+                    Logging.log(f'Route {self.name}: input {input_module.MODULE_NAME} failed: {exception}', severity=Severity.ERROR)
+                    continue
+                if input_data:
+                    sections.append(f'=== {input_module.MODULE_NAME} ===\n{input_data}')
+            return '\n\n'.join(sections) if sections else None
+
         for input_module in self.inputs:
             input_data = await input_module.get_data()
             if input_data:

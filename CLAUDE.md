@@ -98,6 +98,8 @@ A route defines a full pipeline in `config.json`:
 }
 ```
 
+Routes take an optional `"aggregate_inputs": true` — then ALL inputs are collected into one labelled text block (`=== <Module> ===` sections; failing inputs are logged and skipped) instead of the default first-non-empty-input behaviour; used by the Morning Briefing route.
+
 ## Key Architectural Notes
 
 - **Context management**: `ContextManager` stores message history in SQLite with configurable decay (minutes). Tool call context can decay faster than regular context via `context_decay` on tool configs.
@@ -110,6 +112,8 @@ A route defines a full pipeline in `config.json`:
 
 ### Inputs
 - **Email** — reads unread IMAP emails, parses HTML/plain text
+- **Weather** — today's forecast via open-meteo (no API key)
+- **EmailStatus** — unread-mail count + subjects (peek only, nothing marked read)
 - **Matrix** — listens for DMs in Matrix chat
 - **CalDAV** — retrieves upcoming calendar events
 - **Timing** — triggers routes based on scheduled timed events

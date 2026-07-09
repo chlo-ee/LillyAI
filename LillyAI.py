@@ -82,7 +82,8 @@ def init_routes(routes):
         for output_name in outputs:
             output_modules.append(modules[output_name])
 
-        router = Router(inputs=input_modules, processors=processor_modules, outputs=output_modules, prompt=prompt, name=name)
+        router = Router(inputs=input_modules, processors=processor_modules, outputs=output_modules, prompt=prompt, name=name,
+                        aggregate_inputs=route.get('aggregate_inputs', False))
         if not router.verify():
             sys.exit(ExitCodes.INVALID_ROUTES.value)
         routers.append(router)
