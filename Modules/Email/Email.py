@@ -3,6 +3,8 @@ import email
 import imapclient
 from bs4 import BeautifulSoup
 
+import ImapTimeoutFix  # noqa: F401 - patches imapclient's dropped TLS timeout
+
 config = {}
 
 async def get_data():

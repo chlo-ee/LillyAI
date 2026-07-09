@@ -55,7 +55,8 @@
                 runHook preInstall
                 mkdir -p $out/share/lillyai
                 cp -r LillyAI.py LillyVoice.py Router.py Scheduler.py \
-                  PromptTools.py Logging.py Modules $out/share/lillyai/
+                  PromptTools.py Logging.py ImapTimeoutFix.py Modules \
+                  $out/share/lillyai/
                 makeWrapper ${pythonEnv}/bin/python $out/bin/${name} \
                   --add-flags "-m ${entryModule}" \
                   --set PYTHONPATH $out/share/lillyai \

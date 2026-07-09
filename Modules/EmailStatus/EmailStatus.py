@@ -8,6 +8,8 @@ import email
 
 import imapclient
 
+import ImapTimeoutFix  # noqa: F401 - patches imapclient's dropped TLS timeout
+
 config = {}
 
 
