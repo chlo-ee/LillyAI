@@ -96,6 +96,8 @@ Two processor modules are available for talking to an LLM. "Ollama" uses Ollama'
 
 Note that `endpoint` is the server's base URL - the module appends `/v1/chat/completions` itself. Some servers (like llama.cpp with a single loaded model) ignore the `model` value.
 
+OpenAICompat also accepts an optional `"disable_thinking": true`. On llama.cpp this suppresses the model's thinking mode per request (`chat_template_kwargs`) - recommended for models like Gemma whose deliberation can eat the whole token budget and come back as an empty reply. Other servers simply ignore the field.
+
 For both modules, `context_database` is the SQLite file used to store Lilly's conversation context and `short_term_memory_minutes` determines how long messages stay in her context.
 
 ## Routes

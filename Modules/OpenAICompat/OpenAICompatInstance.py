@@ -12,11 +12,17 @@ MAX_CHAT_TURNS = 8
 
 
 class OpenAICompatInstance:
-    def __init__(self, endpoint, model, context_db, short_term_memory_minutes):
+    def __init__(self, endpoint, model, context_db, short_term_memory_minutes,
+                 disable_thinking=False):
         self.endpoint = endpoint
         self.model = model
         self.context_db = context_db
         self.short_term_memory_minutes = short_term_memory_minutes
+        # llama.cpp only (other servers ignore the field): suppress the model's
+        # thinking mode. When Gemma deliberates, the chat parser returns EMPTY
+        # content once the reasoning eats the token budget (finish=length) -
+        # the reply loop then retries for nothing and Lilly says nothing.
+        self.disable_thinking = disable_thinking
 
     def chat(self, content, prompt=None, tools=None, system_prompt_additions=None):
         if tools is None:
@@ -68,6 +74,8 @@ class OpenAICompatInstance:
                 "messages": messages,
                 "stream": False
             }
+            if self.disable_thinking:
+                payload['chat_template_kwargs'] = {'enable_thinking': False}
             if len(tool_descriptions) > 0:
                 payload['tools'] = tool_descriptions
             # Generous ceiling for slow local generation; without it a hung

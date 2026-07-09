@@ -350,6 +350,13 @@ async def llama_chat(session: aiohttp.ClientSession, messages, max_tokens: int,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
+        # Never let the model enter thinking mode: everything this bot asks for
+        # (transcripts, summaries, drafts) is direct output, and when Gemma
+        # deliberates it burns the whole token budget inside a reasoning
+        # segment - the parser then returns EMPTY content (finish=length).
+        # Observed live: a memo whose every transcription attempt "failed"
+        # while the model mused about what the transcript was for.
+        "chat_template_kwargs": {"enable_thinking": False},
     }
     if extra:
         body.update(extra)  # e.g. repeat_penalty (a llama.cpp extension)
