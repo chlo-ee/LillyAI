@@ -1,4 +1,5 @@
 import asyncio
+import faulthandler
 import importlib
 import sys
 from datetime import time
@@ -116,4 +117,7 @@ async def init():
     await scheduler.start()
 
 if __name__ == '__main__':
+    # On SIGABRT (e.g. from the systemd watchdog after a hang) dump every
+    # thread's stack to stderr, so the journal shows WHERE it hung.
+    faulthandler.enable()
     asyncio.run(init())

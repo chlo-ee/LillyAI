@@ -120,6 +120,14 @@
                   # %d = the per-service credentials directory
                   ExecStart = "${cfg.package}/bin/lillyai %d/config.json";
                   LoadCredential = "config.json:${cfg.configFile}";
+                  # The scheduler pings WATCHDOG=1 every tick; a silent hang
+                  # (the loop is synchronous) gets SIGABRTed - faulthandler
+                  # dumps the hang site to the journal - and restarted.
+                  # 630s > the LLM processors' 600s request ceiling, so a
+                  # slow-but-alive generation is never killed mid-reply.
+                  Type = "notify";
+                  NotifyAccess = "main";
+                  WatchdogSec = 630;
                   Restart = "on-failure";
                   RestartSec = "10s";
                   DynamicUser = true;
