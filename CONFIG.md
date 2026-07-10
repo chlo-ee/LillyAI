@@ -148,6 +148,10 @@ The list of modules that should be checked for input. You can use multiple input
 
 Optional, defaults to false. Normally a route stops at the first input module that has data and uses only that. If you set this to `true`, all inputs are collected instead, each wrapped in its own `=== <Module> ===` section and joined together, so the processor sees all of them at once. If an input module fails while aggregating, it is logged and simply left out of the result rather than failing the whole route. This is used by the "Morning Briefing" route to combine calendar, email status and weather into one prompt.
 
+#### empty_input
+
+Optional, only meaningful together with `aggregate_inputs`. Normally a route whose inputs all came back empty simply does not run. For a scheduled briefing that is confusing (no message at all), so you can set `empty_input` to a text that is fed to the processor instead - e.g. "There are no calendar events today, no unread emails, and no weather data is available." - and Lilly will say so.
+
 #### processors
 
 The list of processors to run the input through. Each processor consists of a module and a list of tools that are provided to the module.

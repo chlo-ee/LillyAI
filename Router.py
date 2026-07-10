@@ -3,13 +3,18 @@ from Logging import Severity
 
 
 class Router:
-    def __init__(self, inputs: list, processors: list, outputs: list, prompt: str|None, name: str, aggregate_inputs: bool = False):
+    def __init__(self, inputs: list, processors: list, outputs: list, prompt: str|None, name: str, aggregate_inputs: bool = False,
+                 empty_input: str|None = None):
         self.inputs = inputs
         self.processors = processors
         self.outputs = outputs
         self.prompt = prompt
         self.name = name
         self.aggregate_inputs = aggregate_inputs
+        # Aggregate routes only: what to feed the processor when EVERY input
+        # came back empty. A scheduled briefing should say "nothing today"
+        # instead of silently not running (None keeps the silent behaviour).
+        self.empty_input = empty_input
 
     def verify(self):
         is_valid = True
@@ -63,7 +68,9 @@ class Router:
                     continue
                 if input_data:
                     sections.append(f'=== {input_module.MODULE_NAME} ===\n{input_data}')
-            return '\n\n'.join(sections) if sections else None
+            if sections:
+                return '\n\n'.join(sections)
+            return self.empty_input
 
         for input_module in self.inputs:
             input_data = await input_module.get_data()

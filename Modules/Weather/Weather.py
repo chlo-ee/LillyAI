@@ -2,6 +2,8 @@
 open-meteo.com API (no API key required); used by the morning-briefing route.
 """
 
+import time
+
 import requests
 
 config = {}
@@ -50,20 +52,28 @@ def _describe(code):
 
 async def get_data():
     # timeout: a stalled/unreachable weather API must never hang the
-    # (synchronous) event loop forever.
-    response = requests.get(
-        "https://api.open-meteo.com/v1/forecast",
-        timeout=15,
-        params={
-            "latitude": config["latitude"],
-            "longitude": config["longitude"],
-            "current": "temperature_2m,weather_code",
-            "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,wind_speed_10m_max",
-            "timezone": "auto",
-            "forecast_days": 1,
-        },
-    )
-    response.raise_for_status()
+    # (synchronous) event loop forever. One retry - open-meteo throws the
+    # occasional transient 503, and the morning briefing runs only once.
+    for attempt in range(2):
+        try:
+            response = requests.get(
+                "https://api.open-meteo.com/v1/forecast",
+                timeout=15,
+                params={
+                    "latitude": config["latitude"],
+                    "longitude": config["longitude"],
+                    "current": "temperature_2m,weather_code",
+                    "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,wind_speed_10m_max",
+                    "timezone": "auto",
+                    "forecast_days": 1,
+                },
+            )
+            response.raise_for_status()
+            break
+        except Exception:
+            if attempt == 1:
+                raise
+            time.sleep(2)
     data = response.json()
 
     current = data.get("current", {})
