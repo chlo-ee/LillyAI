@@ -107,6 +107,7 @@ Routes take an optional `"aggregate_inputs": true` — then ALL inputs are colle
 - **DB migrations**: Each module with persistence manages its own versioned migrations under `Modules/<Name>/DBMigrations/`.
 - **Async, mostly**: Input and output module functions are `async`. Processor and tool calls are currently synchronous and block the event loop while the LLM generates.
 - **One instance per module**: Module config is a module-level singleton, so e.g. only one `OpenAICompat` endpoint can be configured at a time.
+- **Deterministic hints before LLM judgment**: the Email input appends a `[System hint: …]` line with regex-detected carrier tracking numbers so the LLM only has to copy them into `track_parcel` rather than extract them itself; the ParcelTracking/ParcelStatus split mirrors Email/EmailStatus (one module owns writes + polling, the other is a read-only peek used by the briefing).
 
 ## Current Modules
 
@@ -117,6 +118,8 @@ Routes take an optional `"aggregate_inputs": true` — then ALL inputs are colle
 - **Matrix** — listens for DMs in Matrix chat
 - **CalDAV** — retrieves upcoming calendar events
 - **Timing** — triggers routes based on scheduled timed events
+- **ParcelTracking** — polls carriers for tracked-parcel status changes (silent when nothing changed)
+- **ParcelStatus** — read-only summary of currently tracked parcels, for the morning briefing
 
 ### Processors
 - **Ollama** — queries local Ollama LLM via its native API; manages context and tool-calling loop
@@ -129,6 +132,7 @@ Routes take an optional `"aggregate_inputs": true` — then ALL inputs are colle
 - **Timing** — `schedule_event` (schedule future LillyAI actions)
 - **WebSearch** — `search_web` (live web search via a SearXNG instance's JSON API)
 - **Messenger** — `compose_message` (files a compose request; LillyVoice drafts it in the user's voice, 👍 in the drafts room sends it)
+- **ParcelTracking** — `track_parcel`, `update_parcel_status`, `get_parcel_status` (register/poll DHL & DPD shipments, log Amazon status updates from email)
 
 ### Outputs
 - **Matrix** — sends Markdown-rendered responses via Matrix chat

@@ -100,6 +100,23 @@ OpenAICompat also accepts an optional `"disable_thinking": true`. On llama.cpp t
 
 For both modules, `context_database` is the SQLite file used to store Lilly's conversation context and `short_term_memory_minutes` determines how long messages stay in her context.
 
+### Parcel Tracking
+
+"ParcelTracking" is a tool + input module that registers parcels and polls carriers for status changes; "ParcelStatus" is the matching read-only input used by the morning briefing (mirrors the Email/EmailStatus split):
+
+```json
+"ParcelTracking": {
+  "parcel_database": "parcels.sqlite",
+  "dhl_api_key": "your-dhl-api-key",
+  "poll_minutes": 30
+},
+"ParcelStatus": {
+  "parcel_database": "parcels.sqlite"
+}
+```
+
+`parcel_database` is the SQLite file both modules use (ParcelTracking owns the schema and migrations, ParcelStatus only reads it). `dhl_api_key` is a free key from a DHL developer account (developer.dhl.com, "Shipment Tracking - Unified" API) - without it, DHL parcels are still registered by `track_parcel` but never polled for status. `poll_minutes` (default 30) rate-limits how often each tracked DHL/DPD parcel is actually polled against the carrier, independent of how often the "Parcel Updates" route itself runs - the route's `schedule_seconds` just controls how promptly a change that already happened gets picked up and announced. Amazon parcels can't be polled at all; their status comes from `update_parcel_status` when the model reads a follow-up email.
+
 ## Routes
 
 Here each route that information can take is listed.

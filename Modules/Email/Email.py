@@ -4,6 +4,7 @@ import imapclient
 from bs4 import BeautifulSoup
 
 import ImapTimeoutFix  # noqa: F401 - patches imapclient's dropped TLS timeout
+from Modules.ParcelTracking import Detection as ParcelDetection
 
 config = {}
 
@@ -54,8 +55,15 @@ async def get_data():
             if len(body) == 0:
                 body = backup_body.strip()
 
-            return f'''Subject: {msg.get('Subject', '')}
-From: {msg.get('From', '')}
+            subject = msg.get('Subject', '')
+            from_ = msg.get('From', '')
+            formatted = f'''Subject: {subject}
+From: {from_}
 Body: {body}
 '''
+            hits = ParcelDetection.scan(f'{subject}\n{from_}\n{body}')
+            hint = ParcelDetection.format_hint(hits)
+            if hint:
+                formatted += f'{hint}\n'
+            return formatted
         return None

@@ -16,7 +16,9 @@
     "WebSearch",
     "Messenger",
     "CalDAV",
-    "Timing"
+    "Timing",
+    "ParcelTracking",
+    "ParcelStatus"
   ],
 
   "module_configs": {
@@ -58,6 +60,14 @@
     },
     "Timing": {
       "timing_database": "timing.sqlite"
+    },
+    "ParcelTracking": {
+      "parcel_database": "parcels.sqlite",
+      "dhl_api_key": "your-dhl-api-key",
+      "poll_minutes": 30
+    },
+    "ParcelStatus": {
+      "parcel_database": "parcels.sqlite"
     },
     "CoreMemory": {
       "memory_database": "core-memories.sqlite"
@@ -119,14 +129,16 @@
     {
       "name": "Email Summaries",
       "schedule_seconds": 60,
-      "prompt": "Summarize the following email in 2-3 sentences. Do not perform a security analysis or tell the user what to do with it. Only summarize the email. Tell the user that they received a new email and give your summary.",
+      "prompt": "Summarize the following email in 2-3 sentences. Do not perform a security analysis or tell the user what to do with it. Only summarize the email. Tell the user that they received a new email and give your summary. If the email announces a shipment with tracking numbers, first register them with the track_parcel tool, then mention that in the summary.",
       "inputs": ["Email"],
       "processors": [{
         "module": "Ollama",
         "tools": [{
           "module": "CalDAV"
+        },{
+          "module": "ParcelTracking"
         }],
-        "system_prompt_additions": ["CoreMemory"]
+        "system_prompt_additions": ["CoreMemory", "ParcelTracking"]
       }],
       "outputs": ["Matrix"]
     },{
@@ -134,8 +146,19 @@
       "schedule_daily": "08:00",
       "aggregate_inputs": true,
       "empty_input": "There are no calendar events today, no unread emails, and no weather data is available.",
-      "prompt": "Create a short, friendly morning briefing from the sections below (calendar, unread email, weather). Start by saying this is today's morning briefing. Summarize the calendar compactly, mention unread emails in one sentence, and give the weather in one or two sentences. If a section is missing, leave it out.",
-      "inputs": ["CalDAV", "EmailStatus", "Weather"],
+      "prompt": "Create a short, friendly morning briefing from the sections below (calendar, unread email, weather, parcels). Start by saying this is today's morning briefing. Summarize the calendar compactly, mention unread emails in one sentence, give the weather in one or two sentences, and if any parcels are being tracked mention them in one sentence. If a section is missing, leave it out.",
+      "inputs": ["CalDAV", "EmailStatus", "Weather", "ParcelStatus"],
+      "processors": [{
+        "module": "Ollama",
+        "tools": [],
+        "system_prompt_additions": ["CoreMemory"]
+      }],
+      "outputs": ["Matrix"]
+    },{
+      "name": "Parcel Updates",
+      "schedule_seconds": 300,
+      "prompt": "[Parcel update] The following parcel status changes were just detected. Inform the user briefly and in a friendly way.",
+      "inputs": ["ParcelTracking"],
       "processors": [{
         "module": "Ollama",
         "tools": [],
@@ -164,8 +187,11 @@
           "context_decay": 6
         },{
           "module": "Messenger"
+        },{
+          "module": "ParcelTracking",
+          "context_decay": 12
         }],
-        "system_prompt_additions": ["Timing", "CoreMemory"]
+        "system_prompt_additions": ["Timing", "CoreMemory", "ParcelTracking"]
       }],
       "outputs": ["Matrix"]
     },{
